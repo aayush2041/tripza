@@ -47,5 +47,6 @@ Thumbs.db
 *.sqlite3
 data/
 db/
+.data/
 .temp/
 .cache/

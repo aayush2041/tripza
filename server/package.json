@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "db:dev": "node src/scripts/startDevDb.js",
     "test": "node --test tests/**/*.test.js"
   },
   "dependencies": {
