@@ -2,6 +2,9 @@ import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { RootLayout } from '../layouts/RootLayout.jsx';
 import { HomePage } from '../pages/HomePage.jsx';
+import { LoginPage } from '../pages/LoginPage.jsx';
+import { RegisterPage } from '../pages/RegisterPage.jsx';
+import { ProfilePage } from '../pages/ProfilePage.jsx';
 import { ComingSoonPage } from '../pages/ComingSoonPage.jsx';
 import { SystemStatusPage } from '../pages/SystemStatusPage.jsx';
 import { NotFoundPage } from '../pages/NotFoundPage.jsx';
@@ -14,6 +17,18 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <HomePage />,
+      },
+      {
+        path: 'login',
+        element: <LoginPage />,
+      },
+      {
+        path: 'register',
+        element: <RegisterPage />,
+      },
+      {
+        path: 'profile',
+        element: <ProfilePage />,
       },
       {
         path: 'find-trips',
@@ -42,16 +57,6 @@ export const router = createBrowserRouter([
             featureName="My Trips"
             description="Track your active join requests, hosted trips, and access private Trip Rooms for upcoming departures."
             plannedPrompt="Prompt 4 (Trip Membership & Requests)"
-          />
-        ),
-      },
-      {
-        path: 'profile',
-        element: (
-          <ComingSoonPage
-            featureName="Traveller Profile & Verification"
-            description="Manage your traveller identity, trust badges, travel history, emergency contacts, and ID verification."
-            plannedPrompt="Prompt 2 (Authentication & Verified Profiles)"
           />
         ),
       },

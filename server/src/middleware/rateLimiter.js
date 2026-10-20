@@ -16,5 +16,5 @@ export const apiRateLimiter = rateLimit({
       message: 'Too many requests from this IP. Please try again later.',
     },
   },
-  skip: () => config.isTest, // Disable rate limiting in automated tests to prevent test flake
+  skip: () => process.env.NODE_ENV === 'test' || config.isTest, // Disable rate limiting in automated tests
 });

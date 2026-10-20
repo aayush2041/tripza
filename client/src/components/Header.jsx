@@ -1,14 +1,30 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth.js';
 import { Badge } from './Badge.jsx';
 import './Header.css';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, profile, isAuthenticated, logout } = useAuth();
 
   const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev);
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const verificationStatus = profile?.verificationStatus || 'unverified';
+  const getBadgeVariant = (status) => {
+    switch (status) {
+      case 'verified':
+        return 'success';
+      case 'pending_review':
+        return 'primary';
+      case 'rejected':
+        return 'danger';
+      default:
+        return 'warning';
+    }
+  };
 
   return (
     <header className="header">
@@ -58,14 +74,6 @@ export function Header() {
           </Link>
 
           <Link
-            to="/profile"
-            className={`header__nav-link ${location.pathname === '/profile' ? 'header__nav-link--active' : ''}`}
-          >
-            Profile
-            <Badge variant="neutral" size="sm">Coming Soon</Badge>
-          </Link>
-
-          <Link
             to="/system-status"
             className={`header__nav-link header__nav-link--status ${
               location.pathname === '/system-status' ? 'header__nav-link--active' : ''
@@ -73,6 +81,45 @@ export function Header() {
           >
             System Status
           </Link>
+
+          {/* Authentication Actions */}
+          <div className="header__auth-section">
+            {isAuthenticated ? (
+              <div className="header__user-menu">
+                <Link
+                  to="/profile"
+                  className={`header__nav-link header__user-profile-link ${
+                    location.pathname === '/profile' ? 'header__nav-link--active' : ''
+                  }`}
+                >
+                  <span className="header__user-name">{profile?.fullName || user?.email}</span>
+                  <Badge variant={getBadgeVariant(verificationStatus)} size="sm">
+                    {verificationStatus === 'verified' ? 'Verified' : verificationStatus.replace('_', ' ')}
+                  </Badge>
+                </Link>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="header__logout-btn"
+                  title="Sign Out"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="header__auth-buttons">
+                <Link
+                  to="/login"
+                  className={`header__nav-link ${location.pathname === '/login' ? 'header__nav-link--active' : ''}`}
+                >
+                  Sign In
+                </Link>
+                <Link to="/register" className="btn btn--primary btn--sm">
+                  Register
+                </Link>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Mobile Menu Hamburger */}
@@ -108,12 +155,42 @@ export function Header() {
             <Link to="/my-trips" className="header__mobile-link" onClick={closeMobileMenu}>
               My Trips <Badge variant="neutral">Coming Soon</Badge>
             </Link>
-            <Link to="/profile" className="header__mobile-link" onClick={closeMobileMenu}>
-              Profile <Badge variant="neutral">Coming Soon</Badge>
-            </Link>
             <Link to="/system-status" className="header__mobile-link" onClick={closeMobileMenu}>
               System Status
             </Link>
+
+            <div className="header__mobile-auth">
+              {isAuthenticated ? (
+                <>
+                  <Link to="/profile" className="header__mobile-link" onClick={closeMobileMenu}>
+                    Profile ({profile?.fullName || user?.email})
+                    <Badge variant={getBadgeVariant(verificationStatus)} size="sm">
+                      {verificationStatus}
+                    </Badge>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      closeMobileMenu();
+                    }}
+                    className="header__mobile-link"
+                    style={{ color: 'var(--color-danger)', textAlign: 'left', width: '100%' }}
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+                  <Link to="/login" className="btn btn--secondary" onClick={closeMobileMenu}>
+                    Sign In
+                  </Link>
+                  <Link to="/register" className="btn btn--primary" onClick={closeMobileMenu}>
+                    Register
+                  </Link>
+                </div>
+              )}
+            </div>
           </nav>
         </div>
       )}

@@ -4,7 +4,7 @@
 
 **TripZa** is an India-first travel community platform designed to connect verified travellers, enable collaborative trip publishing, manage join requests, and provide real-time coordination through private Trip Rooms.
 
-This document outlines the foundation architecture established in **Prompt 1**, focusing on modularity, security, honesty in system state reporting, and seamless extensibility for subsequent development phases.
+This document outlines the architecture, data models, session management, and authorization controls established across **Prompt 1 (Foundation)** and **Prompt 2 (Authentication & Verified Profiles)**.
 
 ---
 
@@ -14,17 +14,17 @@ TripZa uses a clean monorepo architecture separating the browser client from the
 
 ```
 tripza/
-├── client/                     # Frontend Application (React + Vite + JSX)
+├── client/                     # Frontend Application (React 19 + Vite 6 + React Router v7)
 │   ├── public/                 # Static assets (favicons, icons)
 │   ├── src/
 │   │   ├── app/                # Application entry configuration
 │   │   ├── components/         # Reusable presentation components (Header, Footer, Card, Badge, etc.)
-│   │   ├── features/           # Domain feature modules (planned for future prompts)
-│   │   ├── hooks/              # Custom React hooks
+│   │   ├── context/            # React Contexts (AuthContext for reactive session state)
+│   │   ├── hooks/              # Custom React hooks (useAuth)
 │   │   ├── layouts/            # Page shell layouts (RootLayout)
-│   │   ├── pages/              # Routed page views (HomePage, ComingSoonPage, SystemStatusPage)
+│   │   ├── pages/              # Routed page views (HomePage, LoginPage, RegisterPage, ProfilePage, etc.)
 │   │   ├── routes/             # Client-side routing table (React Router v7)
-│   │   ├── services/           # Network & API abstraction layer (api.js)
+│   │   ├── services/           # Network & API abstraction layer (api.js with CSRF handling)
 │   │   ├── styles/             # Global CSS variables, resets, and typography
 │   │   └── utils/              # Client utility functions
 │   ├── index.html              # HTML5 entrypoint
@@ -36,17 +36,18 @@ tripza/
 │   │   ├── config/             # Environment validation and Database connection managers
 │   │   │   ├── env.js          # Strict environment schema validation
 │   │   │   └── database.js     # Mongoose connection with honest health telemetry
-│   │   ├── controllers/        # Request/response controllers (healthController)
-│   │   ├── middleware/         # Security headers, rate limiting, 404, error handlers
-│   │   ├── models/             # Mongoose schemas (to be populated in Prompt 2+)
-│   │   ├── routes/             # Express API routing tree (api.js, health.js)
-│   │   ├── services/           # Encapsulated business logic (healthService)
+│   │   ├── controllers/        # Request/response controllers (auth, profiles, verification, health)
+│   │   ├── middleware/         # Security headers, auth, rate limiting, csrf, notFound, errorHandler
+│   │   ├── models/             # Mongoose schemas (User.js, Profile.js)
+│   │   ├── routes/             # Express API routing tree (auth.js, profiles.js, verification.js, health.js)
+│   │   ├── scripts/            # CLI utilities (provisionAdmin.js)
+│   │   ├── services/           # Encapsulated business logic (healthService.js)
 │   │   ├── sockets/            # Socket.IO initialization and Trip Room room management
 │   │   ├── utils/              # Safe logger and sanitizer utilities
-│   │   ├── validators/         # Input validation schemas
+│   │   ├── validators/         # Input validation schemas (authValidator.js, profileValidator.js)
 │   │   ├── app.js              # Express app definition (pure, testable)
 │   │   └── server.js           # Server bootstrap and graceful shutdown listeners
-│   ├── tests/                  # Automated integration tests (node:test + supertest)
+│   ├── tests/                  # Automated integration tests (node:test + supertest + MongoMemoryServer)
 │   └── package.json            # Server dependencies and test scripts
 │
 ├── docs/                       # Architectural and security documentation
@@ -63,72 +64,119 @@ tripza/
 
 ---
 
-## 3. Technology Stack & Rationale
+## 3. Technology Stack & Packages
 
-| Layer | Technology | Rationale |
-| :--- | :--- | :--- |
-| **Frontend Runtime** | React 19 + JSX | Modern, declarative component-driven UI with high developer velocity. |
-| **Frontend Tooling** | Vite 6 | Ultra-fast Hot Module Replacement (HMR) and optimized Rollup production bundling. |
-| **Routing** | React Router v7 | Robust client-side navigation with declarative route configuration and nested layouts. |
-| **Styling** | Modern CSS Variables | Zero-dependency, performant CSS architecture with an India-first design token system. |
-| **Backend Runtime** | Node.js (v22 LTS) | High-throughput asynchronous I/O with native test runner (`node:test`) and modern ES Modules. |
-| **Web Framework** | Express 4 | Battle-tested, minimalist REST API routing with comprehensive middleware ecosystem. |
-| **Real-time Engine** | Socket.IO 4 | WebSocket abstraction with fallback polling, room namespaces, and heartbeat management. |
-| **Database ODM** | MongoDB + Mongoose 8 | Document database ideal for polymorphous travel itineraries, nested member subdocuments, and geospatial queries. |
-| **Testing** | Node Native Test Runner + Supertest | Zero extra test runner dependencies, instant startup, and clean HTTP assertion capabilities. |
-
----
-
-## 4. Authentication Architecture & Security Evaluation
-
-### Selected Approach: Server-Managed Sessions with HTTP-Only Cookies
-For the TripZa stack (React SPA + Express REST API), we evaluate two common paradigms:
-
-1. **JWT stored in localStorage**:
-   - *Risk*: Highly vulnerable to Cross-Site Scripting (XSS). Any script injected via malicious content or third-party packages can exfiltrate tokens.
-   - *Revocation*: Token invalidation before expiry requires complex distributed blacklists.
-   - *Decision*: **Rejected**. Storing authentication tokens in `localStorage` is prohibited.
-
-2. **Server-Managed Sessions via HTTP-Only, Secure Cookies (Recommended & Selected)**:
-   - *Advantages*: The session identifier is stored in an `HttpOnly`, `SameSite=Lax` (or `Strict`), `Secure` cookie. JavaScript in the browser cannot read this cookie, neutralizing token theft via XSS.
-   - *Session Invalidation*: Revoking a compromised session is immediate—the server simply deletes or invalidates the session record in the database/session store.
-   - *CSRF Mitigation*: Handled via custom request headers (`X-Requested-With`, `Origin` verification) or standard CSRF tokens.
-
-### Password Cryptography
-- No custom cryptography is implemented.
-- Password hashing will use **bcrypt** (cost factor 12) or **Argon2id** (memory-hard, resistant to GPU attacks).
-
-### Profile Verification Strategy (Beyond Email)
-Email verification only confirms mailbox control; it provides zero assurance against impersonation, catfishing, or fraud in community travel.
-
-For TripZa's India-first context, verification will be built upon:
-1. **Established Identity Provider Integration (Phase 2 Roadmap)**:
-   - Verification via **DigiLocker** or verified identity APIs (e.g., Cashfree / Setu / HyperVerge KYC).
-   - Validates official Government of India IDs (Aadhaar offline XML, Driving License, or Voter ID) without storing unencrypted raw Aadhaar numbers.
-2. **Documented Manual Review Workflow**:
-   - For travellers preferring manual verification, a secure upload workflow with admin review, selfie match, and emergency contact verification.
-   - Clear traveller trust badges (`Verified Traveller`, `Verified Host`) displayed transparently on listings.
+| Layer | Technology | Version | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Frontend Framework** | React | 19.x | Declarative component UI |
+| **Frontend Tooling** | Vite | 6.x | Dev server and production bundler |
+| **Client Routing** | React Router | 7.x | Nested routing and layout rendering |
+| **CSS Architecture** | Custom CSS Variables | - | Design tokens tailored to Indian travel aesthetic |
+| **Backend Runtime** | Node.js | 22.x LTS | Server runtime |
+| **Web Server** | Express | 4.x | REST API router |
+| **Session Middleware** | express-session | 1.18.x | Server-managed session store |
+| **Session Persistence** | connect-mongo | 5.1.x | MongoDB session persistence |
+| **Password Hashing** | bcryptjs | 2.4.x | 12 salt rounds hashing |
+| **Database ODM** | Mongoose | 8.x | Schema modeling and database access |
+| **Realtime Engine** | Socket.IO | 4.x | WebSocket support for future Trip Rooms |
+| **Test Framework** | Node Native Test Runner | - | Built-in test execution (`node:test`) |
+| **HTTP Assertion** | Supertest | 7.x | Integration testing without server port binding |
+| **In-Memory Database** | mongodb-memory-server | 10.x | Isolated in-memory MongoDB runner for tests |
 
 ---
 
-## 5. Real-Time Communication Architecture (Trip Rooms)
+## 4. Data Models & Separation of Concerns
 
-Real-time coordination is built on **Socket.IO**:
-- **HTTP Server Attachment**: Socket.IO binds to the core Node HTTP server in `server/src/sockets/index.js`.
-- **CORS Alignment**: Strict alignment with `CLIENT_ORIGIN`.
-- **Trip Room Namespacing**: Future prompts will isolate chat messages to approved trip members using rooms:
-  ```javascript
-  io.to(`trip:${tripId}`).emit('new_message', payload);
+To protect user privacy and prevent data leakage, authentication credentials are strictly separated from public traveller profile data:
+
+### 1. User Model (`server/src/models/User.js`)
+Stores sensitive account and security metadata only:
+- `email`: Normalized lowercase string, RFC 5322 regex validated, unique index.
+- `passwordHash`: Bcrypt hash (work factor 12), configured with `select: false` to ensure queries never return it by default.
+- `role`: Enum `['traveller', 'admin']` (default: `'traveller'`).
+- `accountStatus`: Enum `['active', 'suspended', 'deactivated']` (default: `'active'`).
+- `emailVerified`: Boolean (default: `false`).
+- `lastLoginAt`: Timestamp.
+- `timestamps`: `createdAt`, `updatedAt`.
+- `toJSON` transform: Explicitly purges `passwordHash` and `__v`.
+
+### 2. Profile Model (`server/src/models/Profile.js`)
+Encapsulates public and community-facing traveller data:
+- `user`: 1-to-1 ObjectId reference to User, unique index.
+- `fullName`: String (2-100 characters, required).
+- `bio`: String (max 500 characters, optional).
+- `homeCity`: String (max 100 characters, optional).
+- `travelInterests`: Array of strings (e.g., `['Trekking', 'Coastal Drives', 'Camping']`).
+- `languages`: Array of strings (e.g., `['Hindi', 'English', 'Marathi']`).
+- `profilePhotoUrl`: String (URL, optional).
+- `verification`: Embedded subdocument:
+  - `status`: Enum `['unverified', 'pending_review', 'verified', 'rejected']` (default: `'unverified'`).
+  - `submittedAt`: Timestamp.
+  - `reviewedAt`: Timestamp.
+  - `reviewedBy`: ObjectId reference to reviewing Admin User.
+  - `rejectionReason`: Reason text (cleared on new submission).
+  - `reviewNotes`: Internal administrative notes.
+- `completenessPercentage`: Virtual property computing profile completeness from 20% to 100%.
+- `toPublicJSON()`: Strict projection excluding `reviewedBy`, `reviewNotes`, and `rejectionReason`.
+
+> **Data Minimization Guarantee**: No national identity numbers (Aadhaar/PAN), home addresses, emergency contact phone numbers, or dates of birth are collected at this stage.
+
+---
+
+## 5. Authentication, Session & CSRF Architecture
+
+### Server-Managed Sessions
+- **Session ID Generation**: Cryptographically secure, unguessable session tokens managed by `express-session`.
+- **Session Storage**: Sessions are persisted in MongoDB via `connect-mongo` under the `sessions` collection with automatic TTL expiration (7 days).
+- **Session Fixation Defense**: Mandatory `req.session.regenerate()` is executed upon successful login and registration.
+- **Session Invalidation**: Complete `req.session.destroy()` and cookie clearance on logout.
+- **Cookie Security Settings**:
+  - `httpOnly: true`: Blocks browser JavaScript from accessing the session cookie, defeating token theft via XSS.
+  - `sameSite: 'lax'`: Protects against third-party cross-site request forgeries.
+  - `secure: config.isProduction`: Enforces HTTPS transmission in production.
+  - `path: '/'`.
+
+### Double-Submit Cookie CSRF Protection
+1. An unpredictable CSRF token (`crypto.randomBytes(32).toString('hex')`) is stored in `req.session.csrfToken`.
+2. The token is set in a client-readable cookie (`tripza_csrf`) and exposed via `GET /api/auth/csrf-token`.
+3. On all mutating requests (`POST`, `PUT`, `PATCH`, `DELETE`), the frontend API client automatically reads `tripza_csrf` and passes it in the `X-CSRF-Token` header.
+4. The server middleware (`verifyCsrf`) verifies that `req.headers['x-csrf-token'] === req.session.csrfToken` and checks the `Origin` header against `CLIENT_ORIGIN`.
+
+### Zero LocalStorage Policy
+No authentication tokens, session identifiers, passwords, or secrets are ever written to browser `localStorage` or `sessionStorage`.
+
+---
+
+## 6. Verification & Trust Workflow
+
+TripZa treats verification as an essential trust layer for Indian group travel:
+
+```
+[ Unverified ] ──( User submits profile )──> [ Pending Review ]
+                                                      │
+                            ┌─────────────────────────┴────────────────────────┐
+                            ▼                                                  ▼
+                     [ Verified ]                                      [ Rejected ]
+             (Eligible to host trips)                        (Can update details & re-submit)
+```
+
+1. **Initial Registration**: All accounts default to `unverified`.
+2. **Submission**: User calls `POST /api/verification/submit`. Profile transitions to `pending_review`.
+3. **Manual Review (Phase 2 Baseline)**: Administrators review the submission via `POST /api/verification/review` and approve or reject with documented notes.
+4. **Elevation Protection**: Users cannot modify their own verification status or role through profile update endpoints (`PATCH /api/profiles/me` strictly whitelists non-security fields).
+
+### Provisioning the Initial Administrator
+To prevent unauthorized privilege escalation, administrator accounts cannot be created via public APIs:
+- Administrators are provisioned via a dedicated server CLI script:
+  ```bash
+  node src/scripts/provisionAdmin.js admin@tripza.in <SecurePassword> "System Administrator"
   ```
-- **Access Control**: Socket handshake will validate session cookies before admitting any client to a trip room.
 
 ---
 
-## 6. Database Health Reporting Strategy
+## 7. Authorization Middleware Foundation
 
-TripZa strictly adheres to honest telemetry:
-- If MongoDB is disconnected or offline, the API does not fabricate successful writes or fail invisibly.
-- `GET /api/health` queries Mongoose's live `readyState` and responds with:
-  - `status: "ok"` when server and database are healthy.
-  - `status: "degraded"` when server is healthy but the database is disconnected, returning clear diagnostic messages.
-- Connection strings and credentials are automatically scrubbed from all application logs.
+- `requireAuth`: Confirms the presence of an active server session and loads `req.user` and `req.profile`.
+- `requireAdmin`: Confirms `req.user.role === 'admin'`.
+- `requireVerifiedTraveller`: Confirms `req.profile.verification.status === 'verified'`, prepared as the gatekeeper for future trip publishing in Prompt 3.
+- `authRateLimiter`: Enforces a maximum of 10 login/registration attempts per 15 minutes per IP.
