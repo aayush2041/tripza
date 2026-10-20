@@ -16,6 +16,9 @@ const notificationSchema = new mongoose.Schema(
         'request_rejected',
         'trip_cancelled',
         'trip_updated',
+        'member_left',
+        'moderation_notice',
+        'account_status',
       ],
       required: true,
     },
@@ -36,6 +39,10 @@ const notificationSchema = new mongoose.Schema(
       ref: 'Trip',
       default: null,
       index: true,
+    },
+    data: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     read: {
       type: Boolean,

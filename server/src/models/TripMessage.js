@@ -33,7 +33,7 @@ const tripMessageSchema = new mongoose.Schema(
     moderation: {
       status: {
         type: String,
-        enum: ['visible', 'reported', 'hidden', 'deleted'],
+        enum: ['visible', 'reported', 'hidden', 'deleted', 'removed'],
         default: 'visible',
       },
       reportedBy: [

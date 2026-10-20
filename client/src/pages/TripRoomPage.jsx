@@ -347,6 +347,11 @@ export function TripRoomPage() {
 
           {/* Messages List */}
           <div className="messages-container">
+            <div className="room-privacy-banner">
+              🔒 <span>Messages are encrypted in transit (TLS) and visible only to confirmed trip members. Not end-to-end encrypted.</span>{' '}
+              <Link to="/safety" className="room-privacy-link">Read Safety Guidelines</Link>
+            </div>
+
             {hasMore && (
               <button
                 type="button"

@@ -4,6 +4,8 @@ import { TripMembership } from '../models/TripMembership.js';
 import { Profile } from '../models/Profile.js';
 import { validateTripInput, validateDiscoveryQuery } from '../validators/tripValidator.js';
 import { createNotification } from '../services/notificationService.js';
+import { isBlocked } from '../services/blockService.js';
+import { removeUserFromTripRoom } from '../sockets/index.js';
 
 /**
  * Helper to fetch public organiser profile details.
@@ -334,6 +336,24 @@ export async function updateTrip(req, res, next) {
     Object.assign(trip, updates);
     await trip.save();
 
+    // If trip is published, notify approved members of changes
+    if (trip.status === 'published') {
+      const approvedMemberships = await TripMembership.find({
+        trip: trip._id,
+        status: 'approved',
+      });
+
+      for (const m of approvedMemberships) {
+        await createNotification({
+          recipient: m.traveller,
+          type: 'trip_updated',
+          title: `Trip Updated: ${trip.title}`,
+          message: `The organiser updated details for "${trip.title}". Please review the updated itinerary.`,
+          trip: trip._id,
+        });
+      }
+    }
+
     res.status(200).json({
       success: true,
       data: trip.toJSON(),
@@ -507,6 +527,18 @@ export async function joinTrip(req, res, next) {
         error: {
           code: 'TRIP_NOT_PUBLISHED',
           message: `Cannot join a trip with status '${trip.status}'.`,
+        },
+      });
+    }
+
+    // Safety check: Block relationship between traveller and organiser
+    const blocked = await isBlocked(req.user._id, trip.organiser);
+    if (blocked) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'BLOCKED_INTERACTION',
+          message: 'Cannot request to join this trip due to an active block relationship between you and the host.',
         },
       });
     }
@@ -890,11 +922,18 @@ export async function leaveTrip(req, res, next) {
       const travellerProfile = await Profile.findOne({ user: req.user._id });
       await createNotification({
         recipient: trip.organiser,
-        type: 'trip_updated',
+        type: 'member_left',
         title: `Member Left: ${trip.title}`,
         message: `${travellerProfile?.fullName || 'A member'} has left the trip "${trip.title}".`,
         trip: trip._id,
       });
+
+      // Revoke socket access from the Trip Room immediately
+      try {
+        removeUserFromTripRoom(req.user._id, trip._id);
+      } catch {
+        // Best-effort socket removal
+      }
     }
 
     res.status(200).json({

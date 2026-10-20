@@ -118,6 +118,25 @@ Configured in `server/src/validators/authValidator.js` and `server/src/validator
 
 ---
 
+### N. Centralized Reporting, Abuse Prevention & Confidentiality
+- **Confidential Reporting**: Reporter user IDs are never disclosed to reported users in any API response or notification.
+- **Strict Role Boundaries**: Moderation queues (`/api/admin/reports`) and restricted moderator notes (`moderatorNotes`, select: false) are protected by `requireAuth` + `requireAdmin`.
+- **Anti-Spam Controls**: Duplicate open report submissions (`{ reporter, targetType, targetId, status: ['open', 'under_review'] }`) are rejected with `409 Conflict`.
+- **Audit Logging**: Resolution actions (`resolvedBy`, `resolvedAt`, `resolutionAction`, `moderatorNotes`) maintain an immutable moderation history.
+- **Account Suspension & Socket Eviction**: When a user account status is set to `'suspended'`, `disconnectUserSockets(userId)` terminates all active WebSocket sessions immediately, and subsequent authentication/session checks reject access with `403 ACCOUNT_SUSPENDED`.
+
+### O. Blocking Mechanics, Data Isolation & Privacy Guarantees
+- **Server-Side Enforcement**: Block relationships are verified at the database query and service layer via `isBlocked(userA, userB)`.
+- **Direct Interaction Prohibition**: Blocked relationships block join requests (`POST /api/trips/:id/join` -> `403 BLOCKED_INTERACTION`).
+- **No Silent Group Mutation**: Blocking another user does not silently alter or drop active trip memberships. Organiser moderation or explicit member withdrawal is required to keep group travel records auditable and transparent.
+- **Shared Room Safety Balance**: If two users share membership in an existing group expedition, room messages remain visible to preserve group logistics and safety, avoiding dangerous coordination blindspots.
+
+### P. Notification Access Controls & Privacy Enforcement
+- **Recipient Ownership**: All notification queries enforce `recipient: req.user._id`. Users cannot inspect or mark as read notifications belonging to others.
+- **In-App Delivery Only**: To prevent privacy leaks or fake delivery promises, all notifications are persisted exclusively in MongoDB and delivered via authenticated in-app APIs. No unconfigured third-party email/SMS gateways are faked.
+
+---
+
 ## 4. Current Limitations & Roadmap
 
 1. **Identity Provider Integration (DigiLocker / Gov KYC)**:
@@ -127,6 +146,8 @@ Configured in `server/src/validators/authValidator.js` and `server/src/validator
    - SMS/TOTP MFA is not yet implemented and is scheduled for high-privilege administrative accounts prior to production launch.
 3. **Database Offline Mode**:
    - In local development without MongoDB running, health checks report `degraded` and database-dependent features fail gracefully with descriptive error feedback.
+4. **End-to-End Encryption (E2EE)**:
+   - Chat is encrypted in transit (TLS) and stored securely with server-managed access controls, but is intentionally not end-to-end encrypted to allow offline message synchronization and reported content moderation.
 
 ---
 
@@ -156,5 +177,11 @@ Configured in `server/src/validators/authValidator.js` and `server/src/validator
 - [x] Chat rate limiting (5 msgs per 3s) and message length limits (2000 chars).
 - [x] Stored XSS defense via safe text rendering.
 - [x] Read-only archival policy on cancelled trips.
+- [x] Confidential safety reporting system for users, trips, and messages.
+- [x] Protected admin moderation queue with audit trail notes.
+- [x] Content removal masking harmful messages across history.
+- [x] Account suspension with real-time socket disconnection.
+- [x] User blocking with interaction prevention on join requests.
+- [x] In-app notification ownership isolation and bulk read state.
 - [ ] Automated DigiLocker / Government ID API integration (Phase 2+ roadmap).
 - [ ] TLS / HTTPS production termination (Deployment phase).

@@ -5,6 +5,9 @@ import profileRoutes from './profiles.js';
 import verificationRoutes from './verification.js';
 import tripRoutes from './trips.js';
 import notificationRoutes from './notifications.js';
+import blockRoutes from './blocks.js';
+import reportRoutes from './reports.js';
+import adminRoutes from './admin.js';
 
 const apiRouter = Router();
 
@@ -15,6 +18,9 @@ apiRouter.use('/profiles', profileRoutes);
 apiRouter.use('/verification', verificationRoutes);
 apiRouter.use('/trips', tripRoutes);
 apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/blocks', blockRoutes);
+apiRouter.use('/reports', reportRoutes);
+apiRouter.use('/admin', adminRoutes);
 
 // Root /api endpoint information
 apiRouter.get('/', (req, res) => {

@@ -227,4 +227,62 @@ Public discovery (`GET /api/trips`) provides high-performance searching across p
   - Existing message history remains readable to confirmed members.
   - New message submissions via Socket.IO and REST are blocked with `TRIP_CANCELLED`.
 
+---
+
+## 10. Centralized Safety, Reporting & Moderation (Prompt 5)
+
+### Unified Safety Reporting Architecture
+- **Persistent Model (`Report`)**: Centralized collection handling user, trip listing, and chat message reports.
+  - Standardized categories: `harassment`, `spam`, `misleading`, `impersonation`, `unsafe_conduct`, `inappropriate_content`, `other`.
+  - Resolution lifecycle: `open` ➔ `under_review` ➔ `action_taken` / `dismissed`.
+  - Actions: `warning_issued`, `content_removed`, `user_suspended`, `dismissed`.
+  - Confidentiality: Reporter details are strictly sealed and never disclosed to reported parties.
+- **Admin Moderation Queue**:
+  - Protected endpoints `/api/admin/reports` requiring `role: 'admin'`.
+  - Enriched with target content previews (user profile, trip details, message text).
+  - Restricted `moderatorNotes` (select: false) maintaining immutable audit trails.
+- **Consequential Actions**:
+  - Content removal masks reported messages across live rooms and historical archives.
+  - Account suspension disconnects active WebSocket sessions immediately via `disconnectUserSockets(userId)` and blocks login/mutations.
+
+---
+
+## 11. Blocking, Notifications & Lifecycle Integration (Prompt 5)
+
+### Persistent Blocking Engine (`Block`)
+- Pairwise bidirectional block checks enforced server-side via `isBlocked(userA, userB)`.
+- Self-blocking and duplicate blocking are blocked at schema and validator levels.
+- **Interaction Policy**:
+  - Blocked users cannot request to join each other's hosted trips (`BLOCKED_INTERACTION`).
+  - Blocking does not silently delete or corrupt existing group trip rosters; administrative or organiser intervention is required for removals.
+  - Shared Trip Room visibility is preserved for ongoing group coordination and safety, but private interaction channels are blocked.
+
+### Persistent In-App Notifications (`Notification`)
+- In-app notification center at `/notifications` with unread badge counter in header.
+- Paginated retrieval, ownership isolation, and atomic bulk read updates (`PATCH /api/notifications/read-all`).
+- **Trigger Matrix**:
+  - `join_request_received`: Traveller submits join request ➔ Organiser notified.
+  - `request_approved`: Organiser accepts applicant ➔ Traveller notified.
+  - `request_rejected`: Organiser declines applicant ➔ Traveller notified.
+  - `trip_cancelled`: Organiser cancels journey ➔ All confirmed and pending members notified.
+  - `trip_updated`: Organiser edits published trip ➔ Confirmed members notified.
+  - `member_left`: Confirmed traveller leaves journey ➔ Organiser notified, room socket evicted.
+  - `moderation_notice`: Moderation decision reached ➔ Relevant parties notified.
+
+---
+
+## 12. Part 1 Complete System Inventory & Scope Boundaries
+
+### Complete User Journey
+1. **Registration & Session**: Bcrypt work factor 12, server-managed sessions in MongoDB, CSRF tokens.
+2. **Profile & Verification**: Public identity, bio, travel interests, government ID submission, manual admin review.
+3. **Trip Management**: Drafting, verified-only publishing, atomic capacity reservation (`approvedMembersCount < maxJoiners`).
+4. **Discovery & Exploration**: Multi-filter search (category, destination, city, budget, availability) with NoSQL injection defense.
+5. **Private Trip Rooms**: Session-authenticated Socket.IO channels, persistent messages, rate limiting, and cursor pagination.
+6. **Community Safety**: In-app reporting, user blocking, moderation queue, notification center, and safety guidelines.
+
+### Scope Boundaries (Post-Part 1)
+- Route planner, smart AI itinerary generation, gear store, and commercial payment gateways belong to Part 2 and are intentionally excluded from Part 1 foundation.
+
+
 

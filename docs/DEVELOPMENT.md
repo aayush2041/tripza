@@ -156,6 +156,28 @@ node src/scripts/provisionAdmin.js admin@tripza.in AdminPassword123! "Lead Admin
    - As the host, cancel the trip.
    - Verify the Trip Room displays the `Archived (Read-Only)` badge, existing messages remain readable, and message input is safely disabled.
 
+### G. Testing Safety Reporting, User Blocking & Notifications (Prompt 5)
+1. **Reporting Inappropriate Conduct**:
+   - On any trip details page, public profile, or Trip Room message, click the **🚩 Report** button.
+   - Select an applicable category (e.g. *harassment*, *misleading_trip*, *safety_concern*) and enter explanatory details.
+   - Submit the confidential report; verify duplicate open reports against the same target are prevented.
+2. **User Blocking & Account Safety**:
+   - Navigate to [http://localhost:5173/profile](http://localhost:5173/profile) to inspect the **Blocked Travellers** manager.
+   - Block another user via API or safety controls; verify the blocked traveller cannot submit join requests for trips hosted by the blocker.
+   - Unblock the user and verify join request capabilities are restored. Existing confirmed group trip memberships are preserved without silent disruption.
+3. **In-App Notifications Centre**:
+   - Navigate to [http://localhost:5173/notifications](http://localhost:5173/notifications) or click the bell icon in the navigation header.
+   - Receive automatic notifications for new join requests, host approvals/rejections, itinerary edits (`trip_updated`), and member departures (`member_left`).
+   - Use the **Mark All as Read** button or filter by unread notifications.
+4. **Administrative Moderation Dashboard**:
+   - Sign in as an administrator (e.g. `admin@tripza.in`).
+   - Navigate to [http://localhost:5173/admin/moderation](http://localhost:5173/admin/moderation) (or click **🛡️ Moderation** in the header).
+   - Filter reports by status (`open`, `under_review`, `action_taken`, `dismissed`) and target type.
+   - Resolve reports by taking action (e.g., dismiss with audit notes, remove offending chat messages, or suspend bad-actor user accounts).
+   - Verify suspended users are immediately evicted from active WebSocket rooms and prevented from re-connecting.
+5. **Community Safety Guidelines & Emergency Resources**:
+   - Navigate to [http://localhost:5173/safety](http://localhost:5173/safety) to view India-specific safety guidelines, SOS emergency numbers (112, 1090/1091, 1363, 1070), and the clear in-transit TLS / no-E2EE privacy disclosure.
+
 ---
 
 ## 5. Running Automated Tests
@@ -225,9 +247,21 @@ Expected test output:
     ok 11 - 11. Removed or withdrawn members lose room access
     ok 12 - 12. Cancelled-trip room behavior follows documented read-only policy
     ok 13 - 13. Message history pagination is stable and cursor-based
-# tests 49
-# suites 5
-# pass 49
+# Subtest: TripZa Safety, Reporting, Notifications & Account Safety Suite
+    ok 1 - 1. Authenticated user can report a user, trip, and message with valid categories
+    ok 2 - 2. Users cannot report themselves, and invalid target IDs or categories are rejected
+    ok 3 - 3. Duplicate open reports from the same user for the same target are prevented
+    ok 4 - 4. Ordinary users cannot access admin moderation queue; admins can inspect and resolve reports
+    ok 5 - 5. Message removal via moderation masks text and marks status removed in room history
+    ok 6 - 6. User can block and unblock another user; self-blocking and duplicate blocking are rejected
+    ok 7 - 7. Blocked relationship prevents new trip join requests between the two users
+    ok 8 - 8. In-app notifications are generated for join requests, approvals, rejections, trip edits, and member leave
+    ok 9 - 9. Users can only access and mark their own notifications as read; bulk mark-all-read updates unread counts
+    ok 10 - 10. Suspended user cannot connect or send messages via Socket.IO
+    ok 11 - 11. Message reported in Trip Room reaches the centralized Report collection
+# tests 60
+# suites 6
+# pass 60
 # fail 0
 ```
 

@@ -1,16 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import { getUnreadNotificationCount } from '../services/api.js';
 import { Badge } from './Badge.jsx';
 import './Header.css';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const { user, profile, isAuthenticated, logout } = useAuth();
 
   const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev);
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadCount(0);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchCount = async () => {
+      try {
+        const res = await getUnreadNotificationCount();
+        if (isMounted) {
+          setUnreadCount(res.data?.unreadCount || 0);
+        }
+      } catch {
+        // Soft fail
+      }
+    };
+
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000); // 30s poll for unread badge
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isAuthenticated, location.pathname]);
 
   const verificationStatus = profile?.verificationStatus || 'unverified';
   const getBadgeVariant = (status) => {
@@ -51,14 +79,14 @@ export function Header() {
 
           <Link
             to="/trips"
-            className={`header__nav-link ${location.pathname.startsWith('/trips') || location.pathname === '/find-trips' ? 'header__nav-link--active' : ''}`}
+            className={`header__nav-link ${location.pathname.startsWith('/trips') && !location.pathname.includes('/create') ? 'header__nav-link--active' : ''}`}
           >
             Find Trips
           </Link>
 
           <Link
             to="/trips/create"
-            className={`header__nav-link ${location.pathname === '/trips/create' || location.pathname === '/list-trip' ? 'header__nav-link--active' : ''}`}
+            className={`header__nav-link ${location.pathname === '/trips/create' ? 'header__nav-link--active' : ''}`}
           >
             List a Trip
           </Link>
@@ -69,6 +97,22 @@ export function Header() {
               className={`header__nav-link ${location.pathname === '/my-trips' ? 'header__nav-link--active' : ''}`}
             >
               My Trips
+            </Link>
+          )}
+
+          <Link
+            to="/safety"
+            className={`header__nav-link ${location.pathname === '/safety' ? 'header__nav-link--active' : ''}`}
+          >
+            Safety
+          </Link>
+
+          {isAuthenticated && user?.role === 'admin' && (
+            <Link
+              to="/admin/moderation"
+              className={`header__nav-link header__admin-link ${location.pathname.startsWith('/admin') ? 'header__nav-link--active' : ''}`}
+            >
+              🛡️ Moderation
             </Link>
           )}
 
@@ -85,6 +129,17 @@ export function Header() {
           <div className="header__auth-section">
             {isAuthenticated ? (
               <div className="header__user-menu">
+                {/* Notification Bell */}
+                <Link
+                  to="/notifications"
+                  className="header__notif-btn"
+                  title="Notifications"
+                  aria-label="View notifications"
+                >
+                  🔔
+                  {unreadCount > 0 && <span className="header__notif-badge">{unreadCount}</span>}
+                </Link>
+
                 <Link
                   to="/profile"
                   className={`header__nav-link header__user-profile-link ${
@@ -156,6 +211,14 @@ export function Header() {
                 My Trips
               </Link>
             )}
+            <Link to="/safety" className="header__mobile-link" onClick={closeMobileMenu}>
+              Safety & Guidelines
+            </Link>
+            {isAuthenticated && user?.role === 'admin' && (
+              <Link to="/admin/moderation" className="header__mobile-link" onClick={closeMobileMenu}>
+                🛡️ Admin Moderation Queue
+              </Link>
+            )}
             <Link to="/system-status" className="header__mobile-link" onClick={closeMobileMenu}>
               System Status
             </Link>
@@ -163,6 +226,9 @@ export function Header() {
             <div className="header__mobile-auth">
               {isAuthenticated ? (
                 <>
+                  <Link to="/notifications" className="header__mobile-link" onClick={closeMobileMenu}>
+                    🔔 Notifications {unreadCount > 0 && `(${unreadCount} unread)`}
+                  </Link>
                   <Link to="/profile" className="header__mobile-link" onClick={closeMobileMenu}>
                     Profile ({profile?.fullName || user?.email})
                     <Badge variant={getBadgeVariant(verificationStatus)} size="sm">

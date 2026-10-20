@@ -248,14 +248,105 @@ export async function getMyTripRequests() {
 // ==========================================
 // Notifications Endpoints
 // ==========================================
+// Notifications Endpoints
+// ==========================================
 
-export async function getMyNotifications() {
-  return request('/notifications');
+export async function getMyNotifications(params = {}) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      query.set(key, String(value));
+    }
+  }
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return request(`/notifications${queryString}`);
+}
+
+export async function getUnreadNotificationCount() {
+  return request('/notifications/unread-count');
 }
 
 export async function markNotificationRead(notificationId) {
   return request(`/notifications/${notificationId}/read`, {
     method: 'PATCH',
+  });
+}
+
+export async function markAllNotificationsRead() {
+  return request('/notifications/read-all', {
+    method: 'PATCH',
+  });
+}
+
+// ==========================================
+// User Safety & Blocking Endpoints
+// ==========================================
+
+export async function blockUser(blockedUserId, reason = '') {
+  return request('/blocks', {
+    method: 'POST',
+    body: JSON.stringify({ blockedUserId, reason }),
+  });
+}
+
+export async function unblockUser(userId) {
+  return request(`/blocks/${userId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getBlockedUsers() {
+  return request('/blocks');
+}
+
+// ==========================================
+// Centralized Safety Reporting Endpoints
+// ==========================================
+
+export async function submitReport({ targetType, targetId, category, explanation = '' }) {
+  return request('/reports', {
+    method: 'POST',
+    body: JSON.stringify({ targetType, targetId, category, explanation }),
+  });
+}
+
+export async function getMyReports() {
+  return request('/reports/mine');
+}
+
+// ==========================================
+// Admin Moderation Endpoints
+// ==========================================
+
+export async function getAdminReports(params = {}) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      query.set(key, String(value));
+    }
+  }
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return request(`/admin/reports${queryString}`);
+}
+
+export async function resolveAdminReport(reportId, data) {
+  return request(`/admin/reports/${reportId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAdminUserStatus(userId, accountStatus) {
+  return request(`/admin/users/${userId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ accountStatus }),
+  });
+}
+
+export async function moderateMessage(messageId, action) {
+  return request(`/admin/messages/${messageId}/moderate`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action }),
   });
 }
 
@@ -326,7 +417,18 @@ export default {
   getMyJoinedTrips,
   getMyTripRequests,
   getMyNotifications,
+  getUnreadNotificationCount,
   markNotificationRead,
+  markAllNotificationsRead,
+  blockUser,
+  unblockUser,
+  getBlockedUsers,
+  submitReport,
+  getMyReports,
+  getAdminReports,
+  resolveAdminReport,
+  updateAdminUserStatus,
+  moderateMessage,
   getTripRoom,
   getTripMessages,
   sendTripMessage,

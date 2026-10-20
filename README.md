@@ -4,7 +4,7 @@
 [![React Version](https://img.shields.io/badge/React-v19.x-blue)](https://react.dev/)
 [![Vite Version](https://img.shields.io/badge/Vite-v6.x-purple)](https://vitejs.dev/)
 [![Express Version](https://img.shields.io/badge/Express-v4.x-lightgrey)](https://expressjs.com/)
-[![Tests](https://img.shields.io/badge/Tests-Passing%20(49%2F49)-brightgreen)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-Passing%20(60%2F60)-brightgreen)](https://github.com/)
 
 **TripZa** is a trusted, community-first travel platform built for Indian travellers. It enables verified members to discover travel companions, publish road trips and treks (from Spiti and Ladakh to the Western Ghats and coastal Konkan), manage join requests, coordinate in private real-time Trip Rooms, and explore India safely together.
 
@@ -51,7 +51,16 @@
 - [x] **Dual Delivery Architecture**: Socket.IO for real-time interaction with automatic REST HTTP fallback (`POST /api/trips/:tripId/messages`) when WebSocket disconnects or degrades.
 - [x] **Archived / Read-Only Policy for Cancelled Trips**: If a trip is cancelled, existing room messages remain readable to confirmed members, but sending new messages is rejected with HTTP 400 (`TRIP_CANCELLED`).
 - [x] **Trip Room UI**: Responsive chat room at `/trips/:id/room` featuring live message feed, active member roster sidebar, message reporting modal, typing notifications, and host/member navigation shortcuts.
-- [x] **Automated Test Suite**: **49 passing integration tests** across 5 suites with comprehensive coverage of socket auth, room privacy, rate limiting, and message persistence.
+
+### Prompt 5: Safety, Reporting, Notifications & Part 1 Integration
+- [x] **Centralized Safety Reporting System**: Persistent `Report` schema handling user, trip listing, and chat message reports across 7 standardized categories (`harassment`, `spam`, `misleading`, `impersonation`, `unsafe_conduct`, `inappropriate_content`, `other`). Confidential reporting ensures reporter identity is never revealed to the reported party.
+- [x] **Admin Moderation Queue & Action Engine**: Protected endpoints (`/api/admin/reports`, `/api/admin/reports/:id`, `/api/admin/messages/:id/moderate`, `/api/admin/users/:id/status`) allowing admins to review queues, record internal audit notes, issue warnings, mask/remove content, or suspend accounts.
+- [x] **Persistent User Blocking**: `Block` model and endpoints (`POST /api/blocks`, `DELETE /api/blocks/:id`, `GET /api/blocks`) preventing blocked interactions. Block relationships prevent users from requesting to join trips hosted by each other without silently corrupting existing group itineraries.
+- [x] **Comprehensive In-App Notifications**: Model and paginated notification center at `/notifications` with real-time unread badges, filter tabs, bulk mark-all-read (`PATCH /api/notifications/read-all`), and automatic event triggers for join requests, approvals, rejections, cancellations, trip updates, and member departures.
+- [x] **Trip Room Safety & Moderation Masking**: Reported messages directly feed into centralized moderation. Removed messages are automatically masked (`[This message was removed by moderation for violating community guidelines]`), and suspended users are evicted from active WebSocket rooms.
+- [x] **Safety & Community Guidelines**: Dedicated page at `/safety` outlining respectful community standards, Indian emergency helpline numbers (112, 1090/1091, 1363, 1070), rendezvous safety, and transparent transport-level encryption disclosures (no fake E2EE claims).
+- [x] **Complete Part 1 End-to-End Integration**: Seamless navigation across all 16 user journey steps from registration, verification, trip discovery, booking, room chat, reporting, notifications, and cancellation handling.
+- [x] **Full Automated Test Suite**: **60 passing integration tests** across 6 test suites covering safety, reporting, blocking, notifications, room privacy, and trip lifecycles.
 
 ---
 

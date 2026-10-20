@@ -4,6 +4,7 @@ import { TripMembership } from '../models/TripMembership.js';
 import { TripMessage } from '../models/TripMessage.js';
 import { User } from '../models/User.js';
 import { Profile } from '../models/Profile.js';
+import { createReport } from './reportService.js';
 
 /**
  * Validates whether a given user has permission to access a Trip Room.
@@ -27,6 +28,17 @@ import { Profile } from '../models/Profile.js';
 export async function checkRoomAccess(tripId, userId) {
   if (!mongoose.Types.ObjectId.isValid(tripId) || !mongoose.Types.ObjectId.isValid(userId)) {
     return { allowed: false, reason: 'Invalid trip or user identifier', statusCode: 400 };
+  }
+
+  // Check user account status
+  const user = await User.findById(userId).select('accountStatus');
+  if (!user || user.accountStatus !== 'active') {
+    return {
+      allowed: false,
+      reason: 'Your account is inactive or suspended.',
+      statusCode: 403,
+      membershipStatus: 'suspended',
+    };
   }
 
   const trip = await Trip.findById(tripId).select('title destination startingCity status organiser maxGroupSize startDate endDate');
@@ -189,10 +201,15 @@ export async function getRoomMessages(tripId, { before, limit = 50 }) {
         profilePhotoUrl: p?.profilePhotoUrl || null,
         isVerified: p?.verification?.status === 'verified',
       },
-      message: msg.moderation?.status === 'deleted' ? 'This message was deleted.' : msg.message,
+      message:
+        msg.moderation?.status === 'removed'
+          ? '[This message was removed by moderation for violating community guidelines]'
+          : msg.moderation?.status === 'deleted'
+            ? 'This message was deleted.'
+            : msg.message,
       createdAt: msg.createdAt,
       editedAt: msg.editedAt,
-      isDeleted: msg.moderation?.status === 'deleted',
+      isDeleted: msg.moderation?.status === 'deleted' || msg.moderation?.status === 'removed',
     };
   });
 
@@ -271,6 +288,7 @@ export async function saveRoomMessage(tripId, userId, messageText) {
 
 /**
  * Report a message for moderation.
+ * Integrates directly with the centralized safety reporting queue.
  */
 export async function reportRoomMessage(tripId, messageId, userId, reportReason = '') {
   const access = await checkRoomAccess(tripId, userId);
@@ -297,6 +315,23 @@ export async function reportRoomMessage(tripId, messageId, userId, reportReason 
     message.moderation.reportReason = reportReason.slice(0, 500);
   }
   await message.save();
+
+  // Create centralized report
+  try {
+    await createReport({
+      reporterId: userId,
+      targetType: 'message',
+      targetId: messageId,
+      category: 'inappropriate_content',
+      explanation: reportReason || 'Inappropriate message reported in trip room',
+    });
+  } catch (repErr) {
+    // If already reported, ignore duplicate error
+    if (repErr.code !== 'DUPLICATE_REPORT') {
+      // Re-throw if other error
+      throw repErr;
+    }
+  }
 
   return { success: true, messageId: message._id, status: message.moderation.status };
 }

@@ -11,6 +11,9 @@ import { TripRoomPage } from '../pages/TripRoomPage.jsx';
 import { TripCreatePage } from '../pages/TripCreatePage.jsx';
 import { TripEditPage } from '../pages/TripEditPage.jsx';
 import { MyTripsPage } from '../pages/MyTripsPage.jsx';
+import NotificationsPage from '../pages/NotificationsPage.jsx';
+import SafetyGuidelinesPage from '../pages/SafetyGuidelinesPage.jsx';
+import AdminModerationPage from '../pages/AdminModerationPage.jsx';
 import { SystemStatusPage } from '../pages/SystemStatusPage.jsx';
 import { NotFoundPage } from '../pages/NotFoundPage.jsx';
 
@@ -66,6 +69,18 @@ export const router = createBrowserRouter([
       {
         path: 'my-trips',
         element: <MyTripsPage />,
+      },
+      {
+        path: 'notifications',
+        element: <NotificationsPage />,
+      },
+      {
+        path: 'safety',
+        element: <SafetyGuidelinesPage />,
+      },
+      {
+        path: 'admin/moderation',
+        element: <AdminModerationPage />,
       },
       {
         path: 'system-status',

@@ -5,6 +5,7 @@ import { Card } from '../components/Card.jsx';
 import { Badge } from '../components/Badge.jsx';
 import { Notice } from '../components/Notice.jsx';
 import { LoadingSpinner } from '../components/LoadingSpinner.jsx';
+import { getBlockedUsers, unblockUser } from '../services/api.js';
 import './ProfilePage.css';
 
 export function ProfilePage() {
@@ -23,6 +24,31 @@ export function ProfilePage() {
   const [saveError, setSaveError] = useState('');
   const [verificationNotice, setVerificationNotice] = useState('');
 
+  // Blocked users state
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [blockedLoading, setBlockedLoading] = useState(false);
+
+  const loadBlockedUsers = async () => {
+    setBlockedLoading(true);
+    try {
+      const res = await getBlockedUsers();
+      setBlockedUsers(res.data?.blockedUsers || []);
+    } catch (err) {
+      console.error('Failed to load blocked users:', err);
+    } finally {
+      setBlockedLoading(false);
+    }
+  };
+
+  const handleUnblock = async (blockedUserId) => {
+    try {
+      await unblockUser(blockedUserId);
+      setBlockedUsers((prev) => prev.filter((b) => b.blockedUser?._id !== blockedUserId));
+    } catch (err) {
+      alert(err.message || 'Failed to unblock user.');
+    }
+  };
+
   // Sync state when profile loads
   useEffect(() => {
     if (profile) {
@@ -32,6 +58,7 @@ export function ProfilePage() {
       setTravelInterests((profile.travelInterests || []).join(', '));
       setLanguages((profile.languages || []).join(', '));
       setProfilePhotoUrl(profile.profilePhotoUrl || '');
+      loadBlockedUsers();
     }
   }, [profile]);
 
@@ -372,6 +399,45 @@ export function ProfilePage() {
               </button>
             </div>
           </form>
+        </Card>
+
+        {/* Safety & Blocked Users Management */}
+        <Card
+          title="🛡️ Blocked Users & Safety"
+          subtitle="Manage community members you have blocked"
+          className="profile-grid__main"
+        >
+          {blockedLoading ? (
+            <LoadingSpinner size="sm" label="Loading blocked users..." />
+          ) : blockedUsers.length === 0 ? (
+            <p className="text-sm text-muted" style={{ margin: 0 }}>
+              You have not blocked any travellers. When you block someone from a trip or profile, they will be listed here and will not be able to join your trips.
+            </p>
+          ) : (
+            <div className="blocked-users-list">
+              {blockedUsers.map((b) => (
+                <div key={b.blockId} className="blocked-user-row">
+                  <div>
+                    <strong style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-main)' }}>
+                      {b.blockedUser?.fullName || b.blockedUser?.email}
+                    </strong>
+                    {b.reason && (
+                      <p className="text-xs text-muted" style={{ margin: '2px 0 0' }}>
+                        Reason: {b.reason}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    onClick={() => handleUnblock(b.blockedUser?._id)}
+                  >
+                    Unblock
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>

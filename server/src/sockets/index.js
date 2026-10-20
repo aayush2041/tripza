@@ -290,3 +290,37 @@ export function initSockets(httpServer) {
 export function getIO() {
   return io;
 }
+
+/**
+ * Forcefully disconnects all active sockets belonging to a specific user.
+ * Invoked when an account is suspended or credentials are invalidated.
+ */
+export function disconnectUserSockets(userId) {
+  if (!io || !userId) return;
+  const targetIdStr = userId.toString();
+  for (const [, socket] of io.sockets.sockets) {
+    if (socket.data?.user?._id?.toString() === targetIdStr) {
+      socket.emit('auth:revoked', { message: 'Your session has been terminated or suspended.' });
+      socket.disconnect(true);
+      logger.info(`Forced disconnect on socket ${socket.id} for user ${targetIdStr}`);
+    }
+  }
+}
+
+/**
+ * Removes a user's active sockets from a specific trip room.
+ * Invoked when a member is removed or leaves a trip.
+ */
+export function removeUserFromTripRoom(userId, tripId) {
+  if (!io || !userId || !tripId) return;
+  const targetIdStr = userId.toString();
+  const roomName = `trip:${tripId}`;
+  for (const [, socket] of io.sockets.sockets) {
+    if (socket.data?.user?._id?.toString() === targetIdStr) {
+      socket.leave(roomName);
+      socket.emit('trip-room:evicted', { tripId, message: 'You have left or been removed from this Trip Room.' });
+      logger.info(`Evicted user ${targetIdStr} socket ${socket.id} from room ${roomName}`);
+    }
+  }
+}
+

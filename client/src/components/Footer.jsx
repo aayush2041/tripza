@@ -26,21 +26,22 @@ export function Footer() {
           <div className="footer__col">
             <h4 className="footer__col-title">Platform</h4>
             <ul className="footer__links">
-              <li><Link to="/find-trips">Find Trips (Upcoming)</Link></li>
-              <li><Link to="/list-trip">Host a Trip (Upcoming)</Link></li>
-              <li><Link to="/my-trips">My Bookings & Trips</Link></li>
+              <li><Link to="/trips">Find Indian Trips</Link></li>
+              <li><Link to="/trips/create">List an Expedition</Link></li>
+              <li><Link to="/my-trips">My Hosted & Joined Trips</Link></li>
+              <li><Link to="/safety">Safety & Guidelines</Link></li>
               <li><Link to="/system-status">System Health Status</Link></li>
             </ul>
           </div>
 
           {/* Architecture & Trust Col */}
           <div className="footer__col">
-            <h4 className="footer__col-title">Trust & Architecture</h4>
+            <h4 className="footer__col-title">Trust & Safety</h4>
             <ul className="footer__links">
-              <li><span>Verified Traveller Profiles</span></li>
-              <li><span>Encrypted Private Trip Rooms</span></li>
+              <li><Link to="/profile">Verified Traveller Profiles</Link></li>
+              <li><Link to="/safety">Community Safety Standards</Link></li>
+              <li><span>Private Group Trip Rooms</span></li>
               <li><span>Zero Fake Listings Guarantee</span></li>
-              <li><span>Community Safety Moderation</span></li>
             </ul>
           </div>
         </div>

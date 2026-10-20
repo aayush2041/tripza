@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { Badge } from '../components/Badge.jsx';
 import { Notice } from '../components/Notice.jsx';
 import { LoadingSpinner } from '../components/LoadingSpinner.jsx';
+import ReportModal from '../components/ReportModal.jsx';
 import './TripDetailPage.css';
 
 export function TripDetailPage() {
@@ -23,6 +24,7 @@ export function TripDetailPage() {
   // Join Modal State
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [joinMessage, setJoinMessage] = useState('');
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const fetchTripDetails = useCallback(async () => {
     setLoading(true);
@@ -538,6 +540,20 @@ export function TripDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Safety & Reporting */}
+            {isAuthenticated && !isOrganiser && (
+              <div style={{ marginTop: 'var(--space-3)', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn--outline btn--sm"
+                  style={{ color: 'var(--color-text-muted)', width: '100%', fontSize: '0.8rem' }}
+                  onClick={() => setReportModalOpen(true)}
+                >
+                  🚩 Report Trip Listing
+                </button>
+              </div>
+            )}
           </aside>
         </div>
       </div>
@@ -599,6 +615,15 @@ export function TripDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        targetType="trip"
+        targetId={trip._id}
+        targetTitle={trip.title}
+      />
     </div>
   );
 }

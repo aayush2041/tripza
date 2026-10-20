@@ -1,16 +1,42 @@
-import { getUserNotifications, markNotificationRead } from '../services/notificationService.js';
+import {
+  getUserNotifications,
+  getUnreadCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from '../services/notificationService.js';
 import mongoose from 'mongoose';
 
 /**
  * GET /api/notifications
- * Retrieve notifications for current logged-in user.
+ * Retrieve paginated notifications for current logged-in user.
  */
 export async function getMyNotifications(req, res, next) {
   try {
-    const notifications = await getUserNotifications(req.user._id);
+    const result = await getUserNotifications(req.user._id, {
+      page: req.query.page,
+      limit: req.query.limit,
+      unreadOnly: req.query.unreadOnly === 'true' || req.query.unreadOnly === true,
+    });
+
     res.status(200).json({
       success: true,
-      data: { notifications },
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/notifications/unread-count
+ * Quick count of unread notifications for badge indicators.
+ */
+export async function getUnreadNotificationCount(req, res, next) {
+  try {
+    const unreadCount = await getUnreadCount(req.user._id);
+    res.status(200).json({
+      success: true,
+      data: { unreadCount },
     });
   } catch (error) {
     next(error);
@@ -19,7 +45,7 @@ export async function getMyNotifications(req, res, next) {
 
 /**
  * PATCH /api/notifications/:id/read
- * Mark a notification as read.
+ * Mark a single notification as read.
  */
 export async function markRead(req, res, next) {
   try {
@@ -35,13 +61,30 @@ export async function markRead(req, res, next) {
     if (!updated) {
       return res.status(404).json({
         success: false,
-        error: { code: 'NOT_FOUND', message: 'Notification not found.' },
+        error: { code: 'NOT_FOUND', message: 'Notification not found or not owned by you.' },
       });
     }
 
     res.status(200).json({
       success: true,
       data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PATCH /api/notifications/read-all
+ * Mark all notifications as read for current user.
+ */
+export async function markAllRead(req, res, next) {
+  try {
+    const result = await markAllNotificationsRead(req.user._id);
+    res.status(200).json({
+      success: true,
+      data: result,
+      message: 'All notifications marked as read.',
     });
   } catch (error) {
     next(error);

@@ -388,3 +388,25 @@
   align-items: center;
   gap: var(--space-1);
 }
+
+.room-privacy-banner {
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1rem;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-bottom: var(--space-3);
+  line-height: 1.4;
+}
+
+.room-privacy-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.room-privacy-link:hover {
+  text-decoration: underline;
+}

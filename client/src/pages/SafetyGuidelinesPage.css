@@ -1,0 +1,203 @@
+.safety-page-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.safety-hero {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.safety-hero-badge {
+  display: inline-block;
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--color-primary, #059669);
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.safety-hero h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--color-text-main, #0f172a);
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+}
+
+.safety-hero-subtitle {
+  font-size: 1.1rem;
+  color: var(--color-text-muted, #475569);
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.safety-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.safety-card {
+  background: var(--color-bg-card, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.safety-card-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.safety-card h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  color: var(--color-text-main, #0f172a);
+}
+
+.safety-card p {
+  font-size: 0.95rem;
+  color: #334155;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.safety-card ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #475569;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.safety-card ul strong {
+  color: #1e293b;
+}
+
+.safety-emergency-banner {
+  background: #fef2f2;
+  border: 2px solid #fecaca;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 3rem;
+}
+
+.safety-emergency-banner h2 {
+  color: #991b1b;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+}
+
+.safety-emergency-banner p {
+  color: #7f1d1d;
+  font-size: 0.95rem;
+  margin: 0 0 1.5rem 0;
+}
+
+.emergency-numbers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.emergency-item {
+  background: #ffffff;
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.emergency-number {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #b91c1c;
+}
+
+.emergency-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.safety-disclaimer {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.75rem;
+  text-align: center;
+}
+
+.safety-disclaimer h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #1e293b;
+}
+
+.safety-disclaimer p {
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.6;
+  max-width: 750px;
+  margin: 0 auto 1.5rem auto;
+}
+
+.safety-links-row {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.safety-primary-link {
+  background: var(--color-primary, #059669);
+  color: #ffffff;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: background-color 0.15s;
+}
+
+.safety-primary-link:hover {
+  background: #047857;
+}
+
+.safety-secondary-link {
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.safety-secondary-link:hover {
+  background: #f1f5f9;
+}
+
+@media (max-width: 640px) {
+  .safety-grid {
+    grid-template-columns: 1fr;
+  }
+}
