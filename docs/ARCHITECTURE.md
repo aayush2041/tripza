@@ -284,5 +284,19 @@ Public discovery (`GET /api/trips`) provides high-performance searching across p
 ### Scope Boundaries (Post-Part 1)
 - Route planner, smart AI itinerary generation, gear store, and commercial payment gateways belong to Part 2 and are intentionally excluded from Part 1 foundation.
 
+---
+
+## 13. Prompt 6 Audit & Quality Engineering Refinements
+
+The following architectural invariants were strengthened during the Prompt 6 comprehensive audit:
+
+1. **Strict URL Origin Matching**: Replaced substring prefix matching in `server/src/middleware/csrf.js` with exact URL origin parsing (`originUrl.origin === allowedUrl.origin`). This eliminates origin prefix spoofing vectors (e.g. `http://localhost:5173.attacker.evil`).
+2. **Organiser Context Response Contract**: `GET /api/trips/:id` explicitly returns `isOrganiser: Boolean(req.user && trip.organiser.equals(req.user._id))` alongside `trip` and `userMembership`. The client utilizes this contract with defensive local fallbacks to ensure host controls and edit forms function without spurious authorization errors.
+3. **Itinerary Data Schema Harmonization**: The Mongoose `Trip` schema and validators seamlessly accept and synchronize both `activities` and `description` fields on itinerary day items, ensuring backward and forward compatibility between API consumers and UI forms.
+4. **Single-Boundary Trip Date Invariant**: `updateTrip` evaluates `effectiveStartDate <= effectiveEndDate` by merging incoming date updates with existing stored trip dates, strictly guarding against chronological inversion when only `startDate` or `endDate` is submitted.
+5. **Capacity Guardrails & Socket Eviction**: Rejecting an already rejected request is idempotently blocked with `400 ALREADY_REJECTED`. Rejection of an approved member decrements `approvedMembersCount` with a `$gt: 0` guard and synchronously disconnects/evicts the member's socket from `trip:${tripId}`.
+6. **Applicant Withdrawal Notification Clarification**: When an applicant with status `pending` withdraws their request, only the membership record is updated to `withdrawn`; `member_left` notifications are dispatched solely when the leaving user had already been approved.
+7. **Administrative Verification API**: Added `GET /api/verification/pending` and admin UI review modal to inspect pending applications alongside community safety reports. Verification approval and rejection decisions automatically generate a `moderation_notice` notification for the affected traveller.
+
 
 

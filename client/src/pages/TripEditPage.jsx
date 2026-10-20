@@ -36,13 +36,14 @@ export function TripEditPage() {
     try {
       const res = await getTripById(id);
       if (res.success && res.data) {
-        if (!res.data.isOrganiser) {
+        const t = res.data.trip;
+        const isUserOrganiser = res.data.isOrganiser ?? (user && (t.organiser?._id || t.organiser)?.toString() === (user.id || user._id)?.toString());
+        if (!isUserOrganiser) {
           setError('You do not have authorization to edit this trip.');
           setLoading(false);
           return;
         }
 
-        const t = res.data.trip;
         setTrip(t);
         setFormData({
           title: t.title || '',
@@ -63,9 +64,10 @@ export function TripEditPage() {
             ? t.itinerary.map((item, idx) => ({
                 day: item.day || idx + 1,
                 title: item.title || `Day ${idx + 1}`,
-                description: item.description || '',
+                description: item.description || item.activities || '',
+                activities: item.activities || item.description || '',
               }))
-            : [{ day: 1, title: 'Day 1 Plan', description: '' }],
+            : [{ day: 1, title: 'Day 1 Plan', description: '', activities: '' }],
         });
       }
     } catch (err) {
@@ -205,7 +207,8 @@ export function TripEditPage() {
         itinerary: formData.itinerary.map((d, idx) => ({
           day: idx + 1,
           title: d.title.trim() || `Day ${idx + 1}`,
-          description: d.description.trim(),
+          description: d.description?.trim() || d.activities?.trim() || '',
+          activities: d.activities?.trim() || d.description?.trim() || 'Activities planned for the day',
         })),
       };
 

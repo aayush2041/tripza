@@ -26,7 +26,7 @@ app.use(
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error(`CORS blocked: Origin '${origin}' is not allowed`));
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

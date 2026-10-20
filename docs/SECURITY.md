@@ -19,7 +19,7 @@ Configured in `server/src/middleware/securityHeaders.js`:
 
 ### B. Cross-Origin Resource Sharing (CORS) & Origin Validation
 Configured in `server/src/app.js` and `server/src/middleware/csrf.js`:
-- Origins are matched against configured `CLIENT_ORIGIN` (default: `http://localhost:5173`).
+- Origins are parsed and strictly matched by URL origin (`originUrl.origin === allowedUrl.origin`) against configured `CLIENT_ORIGIN` (default: `http://localhost:5173`). Substring and prefix confusion attacks (`http://localhost:5173.attacker.evil`) are strictly blocked.
 - Wildcards (`*`) with credentials are completely disabled.
 - Mutating cross-origin requests from unapproved domains are rejected with `403 ORIGIN_FORBIDDEN`.
 

@@ -32,9 +32,11 @@ export function TripDetailPage() {
     try {
       const res = await getTripById(id);
       if (res.success && res.data) {
-        setTrip(res.data.trip);
+        const t = res.data.trip;
+        setTrip(t);
         setUserMembership(res.data.userMembership);
-        setIsOrganiser(res.data.isOrganiser);
+        const organiserFlag = res.data.isOrganiser ?? (user && (t?.organiser?._id || t?.organiser)?.toString() === (user?.id || user?._id)?.toString());
+        setIsOrganiser(Boolean(organiserFlag));
       }
     } catch (err) {
       console.error('Failed to load trip details:', err);
@@ -42,7 +44,7 @@ export function TripDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => {
     fetchTripDetails();
@@ -364,8 +366,8 @@ export function TripDetailPage() {
                         <span className="itinerary-day-number">Day {dayItem.day}</span>
                         <h4 className="itinerary-day-title">{dayItem.title}</h4>
                       </div>
-                      {dayItem.description && (
-                        <p className="itinerary-day-desc">{dayItem.description}</p>
+                      {(dayItem.description || dayItem.activities) && (
+                        <p className="itinerary-day-desc">{dayItem.description || dayItem.activities}</p>
                       )}
                     </div>
                   ))}

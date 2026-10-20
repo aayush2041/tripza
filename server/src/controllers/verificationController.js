@@ -1,5 +1,6 @@
 import { Profile } from '../models/Profile.js';
 import mongoose from 'mongoose';
+import { createNotification } from '../services/notificationService.js';
 
 /**
  * Submit profile for community verification.
@@ -128,6 +129,21 @@ export async function reviewVerification(req, res, next) {
 
     await targetProfile.save();
 
+    // Send in-app notification to the traveller
+    try {
+      await createNotification({
+        recipient: targetUserId,
+        type: 'moderation_notice',
+        title: decision === 'verified' ? 'Profile Verified! 🎉' : 'Verification Update',
+        message:
+          decision === 'verified'
+            ? 'Congratulations! Your traveller profile has been verified by the TripZa community team. You can now publish trips.'
+            : `Your verification submission was reviewed. Decision: rejected. Reason: ${reason.trim()}`,
+      });
+    } catch {
+      // Best-effort notification
+    }
+
     res.status(200).json({
       success: true,
       data: {
@@ -135,6 +151,35 @@ export async function reviewVerification(req, res, next) {
         verificationStatus: targetProfile.verification.status,
         reviewedAt: targetProfile.verification.reviewedAt,
         message: `Profile verification has been updated to '${decision}'.`,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Admin: Retrieve pending traveller profiles awaiting verification.
+ */
+export async function getPendingVerifications(req, res, next) {
+  try {
+    const profiles = await Profile.find({ 'verification.status': 'pending_review' })
+      .populate('user', 'email createdAt')
+      .sort({ 'verification.submittedAt': -1 });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        pending: profiles.map((p) => ({
+          userId: p.user?._id || p.user,
+          email: p.user?.email || null,
+          fullName: p.fullName,
+          homeCity: p.homeCity,
+          travelInterests: p.travelInterests,
+          verificationStatus: p.verification?.status,
+          submittedAt: p.verification?.submittedAt,
+          bio: p.bio,
+        })),
       },
     });
   } catch (error) {

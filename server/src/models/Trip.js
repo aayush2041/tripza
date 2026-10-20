@@ -19,6 +19,11 @@ const itineraryItemSchema = new mongoose.Schema(
       trim: true,
       maxlength: 1000,
     },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+    },
   },
   { _id: false }
 );

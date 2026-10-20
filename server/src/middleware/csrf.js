@@ -47,9 +47,23 @@ export function verifyCsrf(req, res, next) {
 
   // 1. Validate Origin header if present
   const origin = req.headers.origin || req.headers.referer;
-  if (origin && !config.isTest) {
+  if (origin) {
     const allowedOrigins = config.clientOrigin.split(',').map((o) => o.trim());
-    const isAllowedOrigin = allowedOrigins.some((allowed) => origin.startsWith(allowed));
+    let isAllowedOrigin = false;
+    try {
+      const originUrl = new URL(origin);
+      isAllowedOrigin = allowedOrigins.some((allowed) => {
+        try {
+          const allowedUrl = new URL(allowed);
+          return originUrl.origin === allowedUrl.origin;
+        } catch {
+          return false;
+        }
+      });
+    } catch {
+      isAllowedOrigin = false;
+    }
+
     if (!isAllowedOrigin) {
       return res.status(403).json({
         success: false,

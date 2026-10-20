@@ -194,14 +194,16 @@ export function TripCreatePage() {
         itinerary: formData.itinerary.map((d, idx) => ({
           day: idx + 1,
           title: d.title.trim() || `Day ${idx + 1}`,
-          description: d.description.trim(),
+          description: d.description?.trim() || d.activities?.trim() || '',
+          activities: d.activities?.trim() || d.description?.trim() || 'Activities planned for the day',
         })),
         status: targetStatus,
       };
 
       const res = await createTrip(payload);
-      if (res.success && res.data?.trip) {
-        navigate(`/trips/${res.data.trip._id}`);
+      const createdTripId = res.data?.trip?._id || res.data?._id;
+      if (res.success && createdTripId) {
+        navigate(`/trips/${createdTripId}`);
       } else {
         navigate('/my-trips');
       }

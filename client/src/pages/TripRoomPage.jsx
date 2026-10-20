@@ -21,6 +21,7 @@ export function TripRoomPage() {
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [accessDenied, setAccessDenied] = useState(null);
   const [errorNotice, setErrorNotice] = useState(null);
+  const [successNotice, setSuccessNotice] = useState(null);
 
   // Connection State
   const [socketStatus, setSocketStatus] = useState('connecting'); // 'connected' | 'connecting' | 'disconnected'
@@ -232,9 +233,10 @@ export function TripRoomPage() {
       await reportTripMessage(tripId, msgId, reportReason);
       setReportingMsgId(null);
       setReportReason('');
-      alert('Thank you. The message has been reported for moderation review.');
+      setSuccessNotice('Thank you. The message has been reported for moderation review.');
+      setTimeout(() => setSuccessNotice(null), 5000);
     } catch (err) {
-      alert(err.message || 'Failed to submit report.');
+      setErrorNotice(err.message || 'Failed to submit report.');
     }
   };
 
@@ -333,6 +335,14 @@ export function TripRoomPage() {
             <div style={{ padding: 'var(--space-2) var(--space-6)' }}>
               <Notice type="error" title="Notice">
                 {errorNotice}
+              </Notice>
+            </div>
+          )}
+
+          {successNotice && (
+            <div style={{ padding: 'var(--space-2) var(--space-6)' }}>
+              <Notice type="success" title="Success">
+                {successNotice}
               </Notice>
             </div>
           )}

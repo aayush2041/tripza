@@ -239,6 +239,8 @@ export async function getTripById(req, res, next) {
       }
     }
 
+    const isOrganiser = Boolean(req.user && trip.organiser.equals(req.user._id));
+
     res.status(200).json({
       success: true,
       data: {
@@ -247,6 +249,7 @@ export async function getTripById(req, res, next) {
           organiserProfile,
         },
         userMembership,
+        isOrganiser,
       },
     });
   } catch (error) {
@@ -331,6 +334,19 @@ export async function updateTrip(req, res, next) {
           },
         });
       }
+    }
+
+    // Ensure effective date range remains valid (endDate >= startDate)
+    const effectiveStartDate = updates.startDate || trip.startDate;
+    const effectiveEndDate = updates.endDate || trip.endDate;
+    if (effectiveStartDate && effectiveEndDate && new Date(effectiveEndDate) < new Date(effectiveStartDate)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_DATES',
+          message: 'End date must be on or after the start date.',
+        },
+      });
     }
 
     Object.assign(trip, updates);
@@ -853,9 +869,33 @@ export async function rejectRequest(req, res, next) {
       });
     }
 
-    // If previously approved, safely decrement count
-    if (membership.status === 'approved') {
-      await Trip.findByIdAndUpdate(trip._id, { $inc: { approvedMembersCount: -1 } });
+    if (membership.status === 'rejected') {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'ALREADY_REJECTED', message: 'This request is already rejected.' },
+      });
+    }
+
+    if (membership.status === 'withdrawn') {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'REQUEST_WITHDRAWN', message: 'This request was withdrawn by the applicant.' },
+      });
+    }
+
+    const wasApproved = membership.status === 'approved';
+
+    // If previously approved, safely decrement count and evict from room
+    if (wasApproved) {
+      await Trip.findOneAndUpdate(
+        { _id: trip._id, approvedMembersCount: { $gt: 0 } },
+        { $inc: { approvedMembersCount: -1 } }
+      );
+      try {
+        removeUserFromTripRoom(membership.traveller, trip._id);
+      } catch {
+        // Best-effort socket removal
+      }
     }
 
     membership.status = 'rejected';
@@ -907,18 +947,19 @@ export async function leaveTrip(req, res, next) {
 
     const wasApproved = membership.status === 'approved';
 
-    // If user was an approved member, decrement capacity
+    // If user was an approved member, decrement capacity safely
     if (wasApproved) {
-      await Trip.findByIdAndUpdate(id, {
-        $inc: { approvedMembersCount: -1 },
-      });
+      await Trip.findOneAndUpdate(
+        { _id: id, approvedMembersCount: { $gt: 0 } },
+        { $inc: { approvedMembersCount: -1 } }
+      );
     }
 
     membership.status = 'withdrawn';
     await membership.save();
 
     const trip = await Trip.findById(id);
-    if (trip) {
+    if (trip && wasApproved) {
       const travellerProfile = await Profile.findOne({ user: req.user._id });
       await createNotification({
         recipient: trip.organiser,

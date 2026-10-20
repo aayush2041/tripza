@@ -259,9 +259,18 @@ Expected test output:
     ok 9 - 9. Users can only access and mark their own notifications as read; bulk mark-all-read updates unread counts
     ok 10 - 10. Suspended user cannot connect or send messages via Socket.IO
     ok 11 - 11. Message reported in Trip Room reaches the centralized Report collection
-# tests 60
-# suites 6
-# pass 60
+# Subtest: TripZa Audit & Regression Suite (Prompt 6)
+    ok 1 - 1. Strict CSRF origin check prevents attacker domain with shared prefix
+    ok 2 - 2. GET /api/trips/:id returns isOrganiser true for host and false for non-host
+    ok 3 - 3. Single-date trip update cannot invert date range (endDate < startDate)
+    ok 4 - 4. Itinerary items map both description and activities seamlessly
+    ok 5 - 5. Rejecting an already rejected request returns 400 ALREADY_REJECTED
+    ok 6 - 6. Host rejecting an approved member decrements capacity safely and evicts socket
+    ok 7 - 7. Pending applicant withdrawing join request does NOT send member_left notification to host
+    ok 8 - 8. Verification review notifies traveller and GET /api/verification/pending lists applications for admins
+# tests 68
+# suites 7
+# pass 68
 # fail 0
 ```
 

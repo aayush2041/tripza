@@ -182,11 +182,18 @@ export function validateTripInput(body, isUpdate = false) {
     } else {
       sanitized.itinerary = body.itinerary
         .filter((item) => item && typeof item === 'object')
-        .map((item, index) => ({
-          day: parseInt(item.day, 10) || index + 1,
-          title: typeof item.title === 'string' ? item.title.trim().slice(0, 120) : `Day ${index + 1}`,
-          activities: typeof item.activities === 'string' ? item.activities.trim().slice(0, 1000) : '',
-        }));
+        .map((item, index) => {
+          const text = (typeof item.activities === 'string' && item.activities.trim())
+            || (typeof item.description === 'string' && item.description.trim())
+            || '';
+          const fallbackText = text.slice(0, 1000) || 'Activities planned for the day';
+          return {
+            day: parseInt(item.day, 10) || index + 1,
+            title: typeof item.title === 'string' ? item.title.trim().slice(0, 120) : `Day ${index + 1}`,
+            activities: fallbackText,
+            description: fallbackText,
+          };
+        });
     }
   }
 

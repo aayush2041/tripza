@@ -4,7 +4,7 @@
 [![React Version](https://img.shields.io/badge/React-v19.x-blue)](https://react.dev/)
 [![Vite Version](https://img.shields.io/badge/Vite-v6.x-purple)](https://vitejs.dev/)
 [![Express Version](https://img.shields.io/badge/Express-v4.x-lightgrey)](https://expressjs.com/)
-[![Tests](https://img.shields.io/badge/Tests-Passing%20(60%2F60)-brightgreen)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-Passing%20(68%2F68)-brightgreen)](https://github.com/)
 
 **TripZa** is a trusted, community-first travel platform built for Indian travellers. It enables verified members to discover travel companions, publish road trips and treks (from Spiti and Ladakh to the Western Ghats and coastal Konkan), manage join requests, coordinate in private real-time Trip Rooms, and explore India safely together.
 
@@ -60,7 +60,16 @@
 - [x] **Trip Room Safety & Moderation Masking**: Reported messages directly feed into centralized moderation. Removed messages are automatically masked (`[This message was removed by moderation for violating community guidelines]`), and suspended users are evicted from active WebSocket rooms.
 - [x] **Safety & Community Guidelines**: Dedicated page at `/safety` outlining respectful community standards, Indian emergency helpline numbers (112, 1090/1091, 1363, 1070), rendezvous safety, and transparent transport-level encryption disclosures (no fake E2EE claims).
 - [x] **Complete Part 1 End-to-End Integration**: Seamless navigation across all 16 user journey steps from registration, verification, trip discovery, booking, room chat, reporting, notifications, and cancellation handling.
-- [x] **Full Automated Test Suite**: **60 passing integration tests** across 6 test suites covering safety, reporting, blocking, notifications, room privacy, and trip lifecycles.
+
+### Prompt 6: Complete Audit, Debugging & Integration Testing
+- [x] **Evidence-Based Comprehensive Audit**: Audited all 5 preceding stages (auth, profiles, trips, rooms, safety) discovering and fixing real edge cases and integration bugs.
+- [x] **Exact Origin Verification**: Switched CSRF Origin validation from prefix matching to parsed URL origin comparison (`originUrl.origin === allowedUrl.origin`), preventing attacker domain spoofing.
+- [x] **Organiser Context Delivery**: Added `isOrganiser` flag to `GET /api/trips/:id` and defensive frontend checks, ensuring host controls and edit pages function reliably.
+- [x] **Itinerary Data Harmonization**: Reconciled Mongoose Trip schema, trip validator, and frontend forms to accept both `activities` and `description` smoothly.
+- [x] **Trip Date Inversion Guard**: Fixed single-date update bug in `updateTrip` to validate `effectiveStartDate <= effectiveEndDate` even when updating only one date boundary.
+- [x] **Membership & Capacity Guardrails**: Prevented duplicate rejection errors (`ALREADY_REJECTED`), guarded capacity decrement against falling below 0, evicted rejected members from active Socket.IO trip rooms, and stopped misleading "member left" notifications on pending join request withdrawal.
+- [x] **Admin Verification Queue & Notifications**: Added `GET /api/verification/pending` and admin review modal on `/admin/moderation`, plus automatic user notifications on verification approvals/rejections.
+- [x] **Full Automated Regression Suite**: **68 passing tests** across 7 suites with 100% pass rate and zero test skips or failures.
 
 ---
 

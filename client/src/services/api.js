@@ -153,6 +153,17 @@ export async function submitVerification() {
   });
 }
 
+export async function getPendingVerifications() {
+  return request('/verification/pending');
+}
+
+export async function reviewVerification({ targetUserId, decision, reason = '', notes = '' }) {
+  return request('/verification/review', {
+    method: 'POST',
+    body: JSON.stringify({ targetUserId, decision, reason, notes }),
+  });
+}
+
 // ==========================================
 // Trip Discovery & Management Endpoints
 // ==========================================
@@ -402,6 +413,8 @@ export default {
   updateMyProfile,
   getPublicProfile,
   submitVerification,
+  getPendingVerifications,
+  reviewVerification,
   getTrips,
   getTripById,
   createTrip,
