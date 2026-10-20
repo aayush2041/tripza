@@ -44,14 +44,23 @@ const userSchema = new mongoose.Schema(
   {
     timestamps: true,
     toJSON: {
+      virtuals: true,
       transform(_doc, ret) {
         delete ret.passwordHash;
         delete ret.__v;
         return ret;
       },
     },
+    toObject: { virtuals: true },
   }
 );
+
+userSchema.virtual('profile', {
+  ref: 'Profile',
+  localField: '_id',
+  foreignField: 'user',
+  justOne: true,
+});
 
 /**
  * Hashes a plaintext password using bcrypt with work factor 12.

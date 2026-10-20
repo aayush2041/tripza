@@ -4,7 +4,7 @@
 
 **TripZa** is an India-first travel community platform designed to connect verified travellers, enable collaborative trip publishing, manage join requests, and provide real-time coordination through private Trip Rooms.
 
-This document outlines the architecture, data models, session management, and authorization controls established across **Prompt 1 (Foundation)**, **Prompt 2 (Authentication & Verified Profiles)**, and **Prompt 3 (Trip Creation, Discovery & Join Requests)**.
+This document outlines the architecture, data models, session management, and authorization controls established across **Prompt 1 (Foundation)**, **Prompt 2 (Authentication & Verified Profiles)**, **Prompt 3 (Trip Creation, Discovery & Join Requests)**, and **Prompt 4 (Private Trip Rooms & Real-Time Group Chat)**.
 
 ---
 
@@ -193,13 +193,38 @@ Public discovery (`GET /api/trips`) provides high-performance searching across p
 
 ---
 
-## 8. Authorization & Verification Rules
-
-- `requireAuth`: Verifies active session; attaches `req.user` and `req.profile`.
-- `requireVerifiedTraveller`: Only users with `profile.verification.status === 'verified'` can publish trips (`POST /api/trips` with `status: 'published'` or `POST /api/trips/:id/publish`).
-- Unverified users can create and save trips as `draft`.
-- Organisers can edit or cancel their own trips. Non-organisers attempting to modify another user's trip receive `403 FORBIDDEN`.
-- Direct-join trips allow immediate admission if capacity exists.
-- Approval-required trips create a `pending` request for organiser review.
 - Organisers can approve or reject pending requests with an optional explanatory note.
+
+---
+
+## 9. Private Trip Rooms & Real-Time Messaging (Prompt 4)
+
+### Room Identity & Scoping
+- Each journey maps to exactly one private Trip Room, deterministically keyed by its `tripId`.
+- **Strict Authorization**: Access is strictly limited to:
+  1. The trip organiser; OR
+  2. Confirmed travellers with `TripMembership` status `'approved'`.
+- All pending applicants, rejected users, withdrawn members, and non-members are blocked from reading room metadata, viewing history, or joining Socket.IO rooms.
+
+### Socket.IO Authentication & Lifecycle
+- **Session-Based Handshake**: Socket connections are authenticated against the server's session store via shared `sessionMiddleware`. Unauthenticated connections are rejected with `AUTHENTICATION_REQUIRED`.
+- **Zero Client Identity Trust**: Sockets extract identity solely from `socket.request.session.userId`. Client-supplied IDs in event payloads are ignored.
+- **Scythed Room Events**:
+  - `trip-room:join` (`{ tripId }`): Verifies access; joins socket channel `trip:${tripId}`.
+  - `trip-room:leave` (`{ tripId }`): Leaves room channel.
+  - `trip-room:message` (`{ tripId, text }`): Authorizes sender, validates length (1-2000 chars), enforces rate limits (max 5 msgs per 3s), persists in MongoDB `TripMessage`, and broadcasts `trip-room:message:new` exclusively to `trip:${tripId}`.
+  - `trip-room:typing` (`{ tripId, isTyping }`): Broadcasts typing status to room peers.
+  - `trip-room:read` (`{ tripId, messageId }`): Emits read event to room peers.
+
+### Message History REST Endpoints & Dual Delivery
+- `GET /api/trips/:tripId/room`: Metadata and companion roster for authorized members.
+- `GET /api/trips/:tripId/messages`: Cursor-based chronological history with `before` and `limit`.
+- `POST /api/trips/:tripId/messages`: HTTP message creation with instant WebSocket broadcast to active socket clients.
+- `POST /api/trips/:tripId/messages/:messageId/report`: Moderation reporting foundation.
+
+### Lifecycle & Cancellation Policy
+- When a trip status is `cancelled`, the Trip Room automatically transitions to an **archived, read-only state**:
+  - Existing message history remains readable to confirmed members.
+  - New message submissions via Socket.IO and REST are blocked with `TRIP_CANCELLED`.
+
 

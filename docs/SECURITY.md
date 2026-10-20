@@ -77,8 +77,19 @@ Configured in `server/src/validators/authValidator.js` and `server/src/validator
 - **Compound Uniqueness Constraints**: `TripMembership` enforces `{ trip: 1, traveller: 1 }` with a unique index, preventing duplicate membership requests or double-joining.
 
 ### K. NoSQL Injection & ReDoS Defenses (Prompt 3)
-- `validateDiscoveryQuery` in `server/src/validators/tripValidator.js` sanitizes all text search arguments (`q`, `destination`, `startingCity`).
-- Regex metacharacters (`[.*+?^${}()|[\]\\]`) are escaped before queries execute, preventing ReDoS (Regular Expression Denial of Service) and operator injection attacks.
+### L. Socket.IO Authentication & Trip Room Security (Prompt 4)
+- **Session-Bound Socket Handshake**: Sockets authenticate exclusively via server-managed session cookies (`tripza_sid`). Unauthenticated connections are rejected at the handshake stage with `AUTHENTICATION_REQUIRED`.
+- **Zero Identity Trust**: Sender identity is resolved solely from `socket.data.user._id` populated from the verified session. Client attempts to supply custom sender IDs or privileges are completely ignored.
+- **Continuous Authorization**: Every HTTP endpoint (`/room`, `/messages`) and every Socket.IO event (`trip-room:join`, `trip-room:message`, `trip-room:typing`, `trip-room:read`) re-verifies that the user is the active organiser or an approved member (`TripMembership` status `'approved'`).
+- **Immediate Revocation**: If a member leaves, withdraws, or is removed, subsequent access is immediately denied (`403 FORBIDDEN`).
+- **Room Isolation**: Socket broadcasts (`trip-room:message:new`) are strictly confined to the specific room channel `trip:${tripId}`. Sockets cannot join or receive events from rooms they do not belong to.
+- **Chat Flooding & Rate Limiting**: Per-user sliding-window rate limit enforces a maximum of 5 messages per 3 seconds.
+- **Message Length & Buffer Limits**: Message text is restricted between 1 and 2000 characters. Socket payload buffer is capped at 100 KB.
+- **Stored XSS Prevention**: Message text is rendered as plain text nodes in React (`{msg.message}`), completely disallowing `dangerouslySetInnerHTML` or HTML execution.
+- **Read-Only Archiving**: Cancelled trips transition the room into read-only mode. New message submissions return `TRIP_CANCELLED`.
+
+### M. Encryption & Privacy Transparency
+> **No End-to-End Encryption (E2EE) Claim**: TripZa uses standard transport-layer security (TLS/HTTPS in production and authenticated WSS) combined with server-side authorization controls. Messages are stored on the server for persistence and member retrieval. TripZa does not claim or provide end-to-end encryption.
 
 ---
 
@@ -98,6 +109,11 @@ Configured in `server/src/validators/authValidator.js` and `server/src/validator
 | **Trip Hijacking** | High | Server-side resource ownership checks on edit, cancel, and applicant decisions. | **Implemented & Verified** |
 | **Unauthorized Publishing** | Medium | Server-side `requireVerifiedTraveller` check prevents unverified accounts from publishing. | **Implemented & Verified** |
 | **Applicant Data Leak** | Medium | Public endpoints strip join requests; accessible exclusively to host. | **Implemented & Verified** |
+| **Unauthorized Room Access**| High | Strict server-side verification: host or approved member only. | **Implemented & Verified** |
+| **Socket Impersonation** | High | Client-supplied sender IDs rejected; identity bound strictly to server session. | **Implemented & Verified** |
+| **Cross-Trip Broadcast Leak**| High | Sockets isolated into `trip:${tripId}` channels; verified membership on join. | **Implemented & Verified** |
+| **Chat Spam / Flooding** | Medium | In-memory sliding rate limiter (5 msgs/3s) and 2000 character cap. | **Implemented & Verified** |
+| **Stored XSS via Messages** | High | Pure React text rendering without raw HTML interpretation. | **Implemented & Verified** |
 | **Credential Leak in Logs** | Medium | Automated regex credential sanitizer in `logger.js`. | **Implemented & Verified** |
 
 ---
@@ -133,5 +149,12 @@ Configured in `server/src/validators/authValidator.js` and `server/src/validator
 - [x] Concurrency-safe capacity increments preventing overbooking.
 - [x] Unique compound indexes preventing duplicate join requests.
 - [x] NoSQL injection and ReDoS protection on discovery search parameters.
+- [x] Session-authenticated Socket.IO connections (unauthenticated rejected).
+- [x] Strict room authorization (only host and approved members).
+- [x] Client spoofing protection (server-bound session identity).
+- [x] Cross-room broadcast isolation.
+- [x] Chat rate limiting (5 msgs per 3s) and message length limits (2000 chars).
+- [x] Stored XSS defense via safe text rendering.
+- [x] Read-only archival policy on cancelled trips.
 - [ ] Automated DigiLocker / Government ID API integration (Phase 2+ roadmap).
 - [ ] TLS / HTTPS production termination (Deployment phase).

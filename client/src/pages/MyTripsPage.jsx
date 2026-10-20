@@ -319,6 +319,10 @@ export function MyTripsPage() {
                       </div>
 
                       <div className="dash-trip-card__actions">
+                        <Link to={`/trips/${trip._id}/room`} className="btn btn--primary btn--sm">
+                          Trip Room
+                        </Link>
+
                         <Link to={`/trips/${trip._id}`} className="btn btn--outline btn--sm">
                           View
                         </Link>
@@ -418,6 +422,9 @@ export function MyTripsPage() {
                     </div>
 
                     <div className="dash-trip-card__actions">
+                      <Link to={`/trips/${trip._id}/room`} className="btn btn--primary btn--sm">
+                        Trip Room
+                      </Link>
                       <Link to={`/trips/${trip._id}`} className="btn btn--outline btn--sm">
                         View Trip
                       </Link>

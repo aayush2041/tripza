@@ -143,6 +143,19 @@ node src/scripts/provisionAdmin.js admin@tripza.in AdminPassword123! "Lead Admin
    - Tab 2 ("Trips I've Joined"): View confirmed journeys and leave if plans change.
    - Tab 3 ("My Join Requests"): Track pending applications and withdraw if needed.
 
+### F. Testing Private Trip Rooms & Real-Time Group Chat (Prompt 4)
+1. **Accessing the Room**:
+   - As an approved member or host, click **💬 Enter Private Trip Room** on the trip detail page or your **My Trips** dashboard.
+   - Navigate directly to [http://localhost:5173/trips/:id/room](http://localhost:5173/trips/:id/room).
+   - Verify unapproved users receive the clear `Private Trip Room Access Restricted` notice.
+2. **Real-Time Group Chat**:
+   - Open the room in two different browsers (or an incognito window) signed in as the host and an approved member.
+   - Send a message in one window; observe the instant WebSocket broadcast update in the other without page refresh.
+   - Observe typing indicators when peer members type.
+3. **Trip Cancellation & Read-Only Mode**:
+   - As the host, cancel the trip.
+   - Verify the Trip Room displays the `Archived (Read-Only)` badge, existing messages remain readable, and message input is safely disabled.
+
 ---
 
 ## 5. Running Automated Tests
@@ -198,9 +211,23 @@ Expected test output:
     ok 13 - 13. Trip capacity cannot be exceeded; further requests are blocked
     ok 14 - 14. Cancelled trips cannot accept new members
     ok 15 - 15. Public trip endpoints do not expose private applicant records
-# tests 36
-# suites 4
-# pass 36
+# Subtest: TripZa Private Trip Rooms & Real-Time Group Chat Suite
+    ok 1 - 1. Organiser can access their trip room metadata and message history
+    ok 2 - 2. Approved member can access the trip room
+    ok 3 - 3. Pending applicant cannot access the trip room (blocked with 403)
+    ok 4 - 4. Non-member cannot retrieve room metadata or message history
+    ok 5 - 5. Unauthenticated Socket.IO connection is rejected
+    ok 6 - 6. Unauthorized socket cannot join a trip room
+    ok 7 - 7. Authorized member can send and receive a persisted message via Socket.IO
+    ok 8 - 8. Client cannot impersonate another sender (sender ID is server-enforced)
+    ok 9 - 9. Message length and rate limits are enforced
+    ok 10 - 10. Messages from one trip are not broadcast to another trip
+    ok 11 - 11. Removed or withdrawn members lose room access
+    ok 12 - 12. Cancelled-trip room behavior follows documented read-only policy
+    ok 13 - 13. Message history pagination is stable and cursor-based
+# tests 49
+# suites 5
+# pass 49
 # fail 0
 ```
 

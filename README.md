@@ -4,7 +4,7 @@
 [![React Version](https://img.shields.io/badge/React-v19.x-blue)](https://react.dev/)
 [![Vite Version](https://img.shields.io/badge/Vite-v6.x-purple)](https://vitejs.dev/)
 [![Express Version](https://img.shields.io/badge/Express-v4.x-lightgrey)](https://expressjs.com/)
-[![Tests](https://img.shields.io/badge/Tests-Passing%20(36%2F36)-brightgreen)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-Passing%20(49%2F49)-brightgreen)](https://github.com/)
 
 **TripZa** is a trusted, community-first travel platform built for Indian travellers. It enables verified members to discover travel companions, publish road trips and treks (from Spiti and Ladakh to the Western Ghats and coastal Konkan), manage join requests, coordinate in private real-time Trip Rooms, and explore India safely together.
 
@@ -42,7 +42,16 @@
 - [x] **In-App Notifications**: Model and endpoints for tracking join request updates, host decisions, and trip cancellations.
 - [x] **Comprehensive Test Suite**: **36 passing integration tests** across 4 suites covering all business rules, capacity limits, and security controls.
 
-> **Scope Note**: Private Trip Room group chat via Socket.IO will be activated in Prompt 4.
+### Prompt 4: Private Trip Rooms & Real-Time Group Chat
+- [x] **Room Access Control**: Strict access checks enforcing that only the trip organiser or active approved members (`status: 'approved'`) can access room history, send messages, or receive real-time updates. Non-members, pending, and rejected users receive 403 Forbidden.
+- [x] **Mongoose TripMessage Model**: Schema with sender references, trip IDs, message text (1-2000 chars), timestamps, and moderation state with compound index `{ trip: 1, createdAt: -1 }`.
+- [x] **Session-Authenticated Socket.IO**: Shared Express/Mongoose session cookie verification in the Socket.IO handshake (`io.use(sessionMiddleware)`); zero trust for client-supplied user identity.
+- [x] **Real-Time Group Chat**: Isolated socket rooms `trip:${tripId}` with instant broadcasting, live typing indicators, and sliding-window rate limiting (max 5 msgs per 3s).
+- [x] **Cursor-Based Message Pagination**: Chronological retrieval with reverse-cursor pagination (`before` timestamp/ID) preventing duplicate or skipped messages during high volume.
+- [x] **Dual Delivery Architecture**: Socket.IO for real-time interaction with automatic REST HTTP fallback (`POST /api/trips/:tripId/messages`) when WebSocket disconnects or degrades.
+- [x] **Archived / Read-Only Policy for Cancelled Trips**: If a trip is cancelled, existing room messages remain readable to confirmed members, but sending new messages is rejected with HTTP 400 (`TRIP_CANCELLED`).
+- [x] **Trip Room UI**: Responsive chat room at `/trips/:id/room` featuring live message feed, active member roster sidebar, message reporting modal, typing notifications, and host/member navigation shortcuts.
+- [x] **Automated Test Suite**: **49 passing integration tests** across 5 suites with comprehensive coverage of socket auth, room privacy, rate limiting, and message persistence.
 
 ---
 

@@ -260,6 +260,39 @@ export async function markNotificationRead(notificationId) {
 }
 
 // ==========================================
+// Trip Room & Messaging Endpoints
+// ==========================================
+
+export async function getTripRoom(tripId) {
+  return request(`/trips/${tripId}/room`);
+}
+
+export async function getTripMessages(tripId, params = {}) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      query.set(key, String(value));
+    }
+  }
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return request(`/trips/${tripId}/messages${queryString}`);
+}
+
+export async function sendTripMessage(tripId, message) {
+  return request(`/trips/${tripId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+}
+
+export async function reportTripMessage(tripId, messageId, reason = '') {
+  return request(`/trips/${tripId}/messages/${messageId}/report`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+// ==========================================
 // System Health
 // ==========================================
 
@@ -294,6 +327,10 @@ export default {
   getMyTripRequests,
   getMyNotifications,
   markNotificationRead,
+  getTripRoom,
+  getTripMessages,
+  sendTripMessage,
+  reportTripMessage,
   getBackendHealth,
   API_BASE_URL,
 };

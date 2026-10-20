@@ -7,6 +7,7 @@ import { RegisterPage } from '../pages/RegisterPage.jsx';
 import { ProfilePage } from '../pages/ProfilePage.jsx';
 import { TripsDiscoveryPage } from '../pages/TripsDiscoveryPage.jsx';
 import { TripDetailPage } from '../pages/TripDetailPage.jsx';
+import { TripRoomPage } from '../pages/TripRoomPage.jsx';
 import { TripCreatePage } from '../pages/TripCreatePage.jsx';
 import { TripEditPage } from '../pages/TripEditPage.jsx';
 import { MyTripsPage } from '../pages/MyTripsPage.jsx';
@@ -53,6 +54,10 @@ export const router = createBrowserRouter([
       {
         path: 'trips/:id',
         element: <TripDetailPage />,
+      },
+      {
+        path: 'trips/:id/room',
+        element: <TripRoomPage />,
       },
       {
         path: 'trips/:id/edit',

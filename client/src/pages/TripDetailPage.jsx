@@ -411,6 +411,10 @@ export function TripDetailPage() {
                       You are the organiser of this trip.
                     </Notice>
 
+                    <Link to={`/trips/${trip._id}/room`} className="btn btn--primary" style={{ width: '100%' }}>
+                      💬 Enter Private Trip Room
+                    </Link>
+
                     <Link to={`/trips/${trip._id}/edit`} className="btn btn--secondary" style={{ width: '100%' }}>
                       Edit Trip
                     </Link>
@@ -448,9 +452,9 @@ export function TripDetailPage() {
                     <Notice type="success" title="Confirmed Member">
                       You are an approved member of this trip! 🎉
                     </Notice>
-                    <div style={{ padding: 'var(--space-3)', background: 'var(--color-teal-light)', borderRadius: 'var(--radius-md)', fontSize: 'var(--font-size-xs)', color: 'var(--color-teal)' }}>
-                      💬 Private Trip Room group chat will activate in Prompt 4.
-                    </div>
+                    <Link to={`/trips/${trip._id}/room`} className="btn btn--primary" style={{ width: '100%' }}>
+                      💬 Enter Private Trip Room
+                    </Link>
                     <button
                       type="button"
                       className="btn btn--secondary"
