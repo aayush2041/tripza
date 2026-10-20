@@ -63,6 +63,22 @@ Configured in `server/src/validators/authValidator.js` and `server/src/validator
 ### H. Data Minimization & Privacy
 - Sensitive personal data (emergency contacts, national IDs, residential addresses, dates of birth) is **not collected** in this phase.
 - Public profile endpoint (`GET /api/profiles/:id`) projects only safe community fields via `profile.toPublicJSON()`.
+- Public trip endpoints (`GET /api/trips`, `GET /api/trips/:id`) do not expose applicant lists or private join request notes. Join requests are visible strictly to the trip host (`GET /api/trips/:id/requests`).
+
+### I. Resource Ownership & Authorization Controls (Prompt 3)
+- **Trip Editing & Cancellation**: Enforced on the server. `Trip.findById()` compares `trip.organiser.toString() === req.user._id.toString()`. Unauthorized modifications return `403 FORBIDDEN`.
+- **Join Request Decisions**: Only the verified host of a trip can approve or reject join requests (`approveJoinRequest`, `rejectJoinRequest`).
+- **Publishing Gatekeeper**: Publishing trips (`POST /api/trips` with `status: 'published'` or `POST /api/trips/:id/publish`) requires `profile.verification.status === 'verified'`. Unverified users are blocked with `403 FORBIDDEN` while being permitted to save drafts.
+
+### J. Concurrency Safety & Race Condition Defenses (Prompt 3)
+- **Atomic Capacity Increment**: Direct joins and host approvals execute atomic MongoDB queries:
+  `Trip.findOneAndUpdate({ _id: tripId, status: 'published', approvedMembersCount: { $lt: maxJoiners } }, { $inc: { approvedMembersCount: 1 } })`.
+  This guarantees that concurrent join requests can never exceed group capacity (`maxGroupSize`).
+- **Compound Uniqueness Constraints**: `TripMembership` enforces `{ trip: 1, traveller: 1 }` with a unique index, preventing duplicate membership requests or double-joining.
+
+### K. NoSQL Injection & ReDoS Defenses (Prompt 3)
+- `validateDiscoveryQuery` in `server/src/validators/tripValidator.js` sanitizes all text search arguments (`q`, `destination`, `startingCity`).
+- Regex metacharacters (`[.*+?^${}()|[\]\\]`) are escaped before queries execute, preventing ReDoS (Regular Expression Denial of Service) and operator injection attacks.
 
 ---
 
@@ -77,7 +93,11 @@ Configured in `server/src/validators/authValidator.js` and `server/src/validator
 | **Credential Cracking** | High | Bcrypt work factor 12; auth endpoint rate limiting (10 per 15m). | **Implemented & Verified** |
 | **Privilege Escalation** | High | Strict field whitelisting on updates; CLI-only admin provisioning. | **Implemented & Verified** |
 | **Self-Verification Fraud**| High | Verification status immutable via profile updates; review requires `admin`. | **Implemented & Verified** |
-| **NoSQL Injection** | High | Strict Mongoose typed schemas; parameterized queries; input validators. | **Implemented & Verified** |
+| **NoSQL Injection / ReDoS** | High | Strict Mongoose typed schemas, regex metacharacter escaping, query parameter sanitization. | **Implemented & Verified** |
+| **Overbooking Race Conditions** | High | Atomic MongoDB `$inc` with `$lt` capacity condition; prevents double-booking. | **Implemented & Verified** |
+| **Trip Hijacking** | High | Server-side resource ownership checks on edit, cancel, and applicant decisions. | **Implemented & Verified** |
+| **Unauthorized Publishing** | Medium | Server-side `requireVerifiedTraveller` check prevents unverified accounts from publishing. | **Implemented & Verified** |
+| **Applicant Data Leak** | Medium | Public endpoints strip join requests; accessible exclusively to host. | **Implemented & Verified** |
 | **Credential Leak in Logs** | Medium | Automated regex credential sanitizer in `logger.js`. | **Implemented & Verified** |
 
 ---
@@ -109,5 +129,9 @@ Configured in `server/src/validators/authValidator.js` and `server/src/validator
 - [x] Mass assignment defenses on registration, login, and profile updates.
 - [x] Role-based authorization middleware (`requireAuth`, `requireAdmin`, `requireVerifiedTraveller`).
 - [x] Safe CLI-only administrator provisioning script.
+- [x] Resource ownership enforcement on trip updates, cancellations, and decisions.
+- [x] Concurrency-safe capacity increments preventing overbooking.
+- [x] Unique compound indexes preventing duplicate join requests.
+- [x] NoSQL injection and ReDoS protection on discovery search parameters.
 - [ ] Automated DigiLocker / Government ID API integration (Phase 2+ roadmap).
 - [ ] TLS / HTTPS production termination (Deployment phase).

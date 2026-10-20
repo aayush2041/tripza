@@ -87,6 +87,26 @@ export function requireVerifiedTraveller(req, res, next) {
 }
 
 /**
+ * Optional authentication middleware.
+ * Attaches req.user and req.profile if a valid session exists without blocking guests.
+ */
+export async function optionalAuth(req, res, next) {
+  if (!req.session || !req.session.userId) {
+    return next();
+  }
+  try {
+    const user = await User.findById(req.session.userId);
+    if (user && user.accountStatus === 'active') {
+      req.user = user;
+      req.profile = await Profile.findOne({ user: user._id });
+    }
+  } catch {
+    // Ignore errors in optional authentication
+  }
+  next();
+}
+
+/**
  * Sensitive rate limiter for registration and login endpoints.
  */
 export const authRateLimiter = rateLimit({

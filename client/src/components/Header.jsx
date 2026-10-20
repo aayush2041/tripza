@@ -50,28 +50,27 @@ export function Header() {
           </Link>
 
           <Link
-            to="/find-trips"
-            className={`header__nav-link ${location.pathname === '/find-trips' ? 'header__nav-link--active' : ''}`}
+            to="/trips"
+            className={`header__nav-link ${location.pathname.startsWith('/trips') || location.pathname === '/find-trips' ? 'header__nav-link--active' : ''}`}
           >
             Find Trips
-            <Badge variant="neutral" size="sm">Coming Soon</Badge>
           </Link>
 
           <Link
-            to="/list-trip"
-            className={`header__nav-link ${location.pathname === '/list-trip' ? 'header__nav-link--active' : ''}`}
+            to="/trips/create"
+            className={`header__nav-link ${location.pathname === '/trips/create' || location.pathname === '/list-trip' ? 'header__nav-link--active' : ''}`}
           >
             List a Trip
-            <Badge variant="neutral" size="sm">Coming Soon</Badge>
           </Link>
 
-          <Link
-            to="/my-trips"
-            className={`header__nav-link ${location.pathname === '/my-trips' ? 'header__nav-link--active' : ''}`}
-          >
-            My Trips
-            <Badge variant="neutral" size="sm">Coming Soon</Badge>
-          </Link>
+          {isAuthenticated && (
+            <Link
+              to="/my-trips"
+              className={`header__nav-link ${location.pathname === '/my-trips' ? 'header__nav-link--active' : ''}`}
+            >
+              My Trips
+            </Link>
+          )}
 
           <Link
             to="/system-status"
@@ -146,15 +145,17 @@ export function Header() {
             <Link to="/" className="header__mobile-link" onClick={closeMobileMenu}>
               Overview
             </Link>
-            <Link to="/find-trips" className="header__mobile-link" onClick={closeMobileMenu}>
-              Find Trips <Badge variant="neutral">Coming Soon</Badge>
+            <Link to="/trips" className="header__mobile-link" onClick={closeMobileMenu}>
+              Find Trips
             </Link>
-            <Link to="/list-trip" className="header__mobile-link" onClick={closeMobileMenu}>
-              List a Trip <Badge variant="neutral">Coming Soon</Badge>
+            <Link to="/trips/create" className="header__mobile-link" onClick={closeMobileMenu}>
+              List a Trip
             </Link>
-            <Link to="/my-trips" className="header__mobile-link" onClick={closeMobileMenu}>
-              My Trips <Badge variant="neutral">Coming Soon</Badge>
-            </Link>
+            {isAuthenticated && (
+              <Link to="/my-trips" className="header__mobile-link" onClick={closeMobileMenu}>
+                My Trips
+              </Link>
+            )}
             <Link to="/system-status" className="header__mobile-link" onClick={closeMobileMenu}>
               System Status
             </Link>

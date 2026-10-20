@@ -3,6 +3,8 @@ import healthRoutes from './health.js';
 import authRoutes from './auth.js';
 import profileRoutes from './profiles.js';
 import verificationRoutes from './verification.js';
+import tripRoutes from './trips.js';
+import notificationRoutes from './notifications.js';
 
 const apiRouter = Router();
 
@@ -11,6 +13,8 @@ apiRouter.use('/health', healthRoutes);
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/profiles', profileRoutes);
 apiRouter.use('/verification', verificationRoutes);
+apiRouter.use('/trips', tripRoutes);
+apiRouter.use('/notifications', notificationRoutes);
 
 // Root /api endpoint information
 apiRouter.get('/', (req, res) => {
@@ -18,7 +22,7 @@ apiRouter.get('/', (req, res) => {
     success: true,
     data: {
       name: 'TripZa API',
-      version: '0.2.0',
+      version: '0.3.0',
       description: 'India-first travel community platform API',
       endpoints: {
         health: '/api/health',
@@ -37,6 +41,26 @@ apiRouter.get('/', (req, res) => {
         verification: {
           submit: 'POST /api/verification/submit',
           review: 'POST /api/verification/review (Admin)',
+        },
+        trips: {
+          discovery: 'GET /api/trips',
+          details: 'GET /api/trips/:id',
+          create: 'POST /api/trips',
+          update: 'PATCH /api/trips/:id',
+          publish: 'POST /api/trips/:id/publish',
+          cancel: 'POST /api/trips/:id/cancel',
+          join: 'POST /api/trips/:id/join',
+          requests: 'GET /api/trips/:id/requests',
+          approveRequest: 'POST /api/trips/:id/requests/:requestId/approve',
+          rejectRequest: 'POST /api/trips/:id/requests/:requestId/reject',
+          leave: 'POST /api/trips/:id/leave',
+          mineOrganized: 'GET /api/trips/mine/organized',
+          mineJoined: 'GET /api/trips/mine/joined',
+          mineRequests: 'GET /api/trips/mine/requests',
+        },
+        notifications: {
+          list: 'GET /api/notifications',
+          markRead: 'PATCH /api/notifications/:id/read',
         },
       },
     },

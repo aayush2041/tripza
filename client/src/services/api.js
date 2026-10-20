@@ -154,7 +154,113 @@ export async function submitVerification() {
 }
 
 // ==========================================
-// Diagnostics Endpoint
+// Trip Discovery & Management Endpoints
+// ==========================================
+
+export async function getTrips(params = {}) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      query.set(key, String(value));
+    }
+  }
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return request(`/trips${queryString}`);
+}
+
+export async function getTripById(tripId) {
+  return request(`/trips/${tripId}`);
+}
+
+export async function createTrip(tripData) {
+  return request('/trips', {
+    method: 'POST',
+    body: JSON.stringify(tripData),
+  });
+}
+
+export async function updateTrip(tripId, tripData) {
+  return request(`/trips/${tripId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(tripData),
+  });
+}
+
+export async function publishTrip(tripId) {
+  return request(`/trips/${tripId}/publish`, {
+    method: 'POST',
+  });
+}
+
+export async function cancelTrip(tripId) {
+  return request(`/trips/${tripId}/cancel`, {
+    method: 'POST',
+  });
+}
+
+export async function joinTrip(tripId, message = '') {
+  return request(`/trips/${tripId}/join`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+}
+
+export async function getTripRequests(tripId) {
+  return request(`/trips/${tripId}/requests`);
+}
+
+export async function approveJoinRequest(tripId, requestId, reason = '') {
+  return request(`/trips/${tripId}/requests/${requestId}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function rejectJoinRequest(tripId, requestId, reason = '') {
+  return request(`/trips/${tripId}/requests/${requestId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function leaveTrip(tripId) {
+  return request(`/trips/${tripId}/leave`, {
+    method: 'POST',
+  });
+}
+
+// ==========================================
+// Personal Dashboard Endpoints
+// ==========================================
+
+export async function getMyOrganizedTrips() {
+  return request('/trips/mine/organized');
+}
+
+export async function getMyJoinedTrips() {
+  return request('/trips/mine/joined');
+}
+
+export async function getMyTripRequests() {
+  return request('/trips/mine/requests');
+}
+
+// ==========================================
+// Notifications Endpoints
+// ==========================================
+
+export async function getMyNotifications() {
+  return request('/notifications');
+}
+
+export async function markNotificationRead(notificationId) {
+  return request(`/notifications/${notificationId}/read`, {
+    method: 'PATCH',
+  });
+}
+
+// ==========================================
+// System Health
 // ==========================================
 
 export async function getBackendHealth() {
@@ -172,6 +278,22 @@ export default {
   updateMyProfile,
   getPublicProfile,
   submitVerification,
+  getTrips,
+  getTripById,
+  createTrip,
+  updateTrip,
+  publishTrip,
+  cancelTrip,
+  joinTrip,
+  getTripRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
+  leaveTrip,
+  getMyOrganizedTrips,
+  getMyJoinedTrips,
+  getMyTripRequests,
+  getMyNotifications,
+  markNotificationRead,
   getBackendHealth,
   API_BASE_URL,
 };

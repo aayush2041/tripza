@@ -12,10 +12,9 @@ export function HomePage() {
       <div className="container" style={{ marginTop: 'var(--space-6)' }}>
         <Notice
           type="info"
-          title="TripZa Foundation (Prompt 1) Active"
+          title="TripZa Phase 3 Active: Trip Discovery & Group Joining Live"
         >
-          Welcome to the foundational release of TripZa. Backend security baseline, health diagnostics,
-          and client shell are live. Registration, identity verification, and trip creation will be introduced in upcoming phases.
+          Secure authentication, verified profiles, trip publishing, discovery filtering, and concurrency-safe join requests are fully operational.
         </Notice>
       </div>
 
@@ -25,7 +24,7 @@ export function HomePage() {
           <div className="hero__content">
             <div className="hero__badge-wrapper">
               <Badge variant="primary" size="md">🇮🇳 India-First Travel Community</Badge>
-              <Badge variant="neutral" size="md">Foundation v0.1.0</Badge>
+              <Badge variant="teal" size="md">Phase 3 Live</Badge>
             </div>
             <h1 className="hero__title">
               Explore India with Verified Travel Companions.
@@ -35,11 +34,11 @@ export function HomePage() {
               and Himalayan treks to Western Ghats road trips and Konkan coastal drives. Travel with genuine, verified people.
             </p>
             <div className="hero__actions">
-              <Link to="/find-trips" className="btn btn--primary">
-                Find Trips <Badge variant="neutral" size="sm">Soon</Badge>
+              <Link to="/trips" className="btn btn--primary">
+                Find Trips Now
               </Link>
-              <Link to="/system-status" className="btn btn--secondary">
-                View System Health
+              <Link to="/trips/create" className="btn btn--secondary">
+                List a Trip
               </Link>
             </div>
           </div>

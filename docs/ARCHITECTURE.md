@@ -4,7 +4,7 @@
 
 **TripZa** is an India-first travel community platform designed to connect verified travellers, enable collaborative trip publishing, manage join requests, and provide real-time coordination through private Trip Rooms.
 
-This document outlines the architecture, data models, session management, and authorization controls established across **Prompt 1 (Foundation)** and **Prompt 2 (Authentication & Verified Profiles)**.
+This document outlines the architecture, data models, session management, and authorization controls established across **Prompt 1 (Foundation)**, **Prompt 2 (Authentication & Verified Profiles)**, and **Prompt 3 (Trip Creation, Discovery & Join Requests)**.
 
 ---
 
@@ -18,11 +18,21 @@ tripza/
 │   ├── public/                 # Static assets (favicons, icons)
 │   ├── src/
 │   │   ├── app/                # Application entry configuration
-│   │   ├── components/         # Reusable presentation components (Header, Footer, Card, Badge, etc.)
+│   │   ├── components/         # Reusable presentation components (Header, Footer, Card, Badge, Notice, etc.)
 │   │   ├── context/            # React Contexts (AuthContext for reactive session state)
 │   │   ├── hooks/              # Custom React hooks (useAuth)
 │   │   ├── layouts/            # Page shell layouts (RootLayout)
-│   │   ├── pages/              # Routed page views (HomePage, LoginPage, RegisterPage, ProfilePage, etc.)
+│   │   ├── pages/              # Routed page views:
+│   │   │   ├── HomePage.jsx            # Landing page with active phase highlights
+│   │   │   ├── LoginPage.jsx           # Secure session authentication
+│   │   │   ├── RegisterPage.jsx        # Account registration
+│   │   │   ├── ProfilePage.jsx         # Profile editing & ID verification submission
+│   │   │   ├── TripsDiscoveryPage.jsx  # Multi-parameter trip discovery & filtering
+│   │   │   ├── TripDetailPage.jsx      # Itinerary, host trust badge, & dynamic join action
+│   │   │   ├── TripCreatePage.jsx      # Draft & publish trip listing form
+│   │   │   ├── TripEditPage.jsx        # Host trip editor
+│   │   │   ├── MyTripsPage.jsx         # Hosted trips, joined journeys & join request approvals
+│   │   │   └── SystemStatusPage.jsx    # Real-time backend diagnostics
 │   │   ├── routes/             # Client-side routing table (React Router v7)
 │   │   ├── services/           # Network & API abstraction layer (api.js with CSRF handling)
 │   │   ├── styles/             # Global CSS variables, resets, and typography
@@ -36,18 +46,22 @@ tripza/
 │   │   ├── config/             # Environment validation and Database connection managers
 │   │   │   ├── env.js          # Strict environment schema validation
 │   │   │   └── database.js     # Mongoose connection with honest health telemetry
-│   │   ├── controllers/        # Request/response controllers (auth, profiles, verification, health)
+│   │   ├── controllers/        # Request/response controllers (auth, profiles, verification, trips, notifications, health)
 │   │   ├── middleware/         # Security headers, auth, rate limiting, csrf, notFound, errorHandler
-│   │   ├── models/             # Mongoose schemas (User.js, Profile.js)
-│   │   ├── routes/             # Express API routing tree (auth.js, profiles.js, verification.js, health.js)
+│   │   ├── models/             # Mongoose schemas (User, Profile, Trip, TripMembership, Notification)
+│   │   ├── routes/             # Express API routing tree (auth, profiles, verification, trips, notifications, health)
 │   │   ├── scripts/            # CLI utilities (provisionAdmin.js)
-│   │   ├── services/           # Encapsulated business logic (healthService.js)
+│   │   ├── services/           # Business logic (healthService.js, notificationService.js)
 │   │   ├── sockets/            # Socket.IO initialization and Trip Room room management
 │   │   ├── utils/              # Safe logger and sanitizer utilities
-│   │   ├── validators/         # Input validation schemas (authValidator.js, profileValidator.js)
+│   │   ├── validators/         # Input validation schemas (authValidator, profileValidator, tripValidator)
 │   │   ├── app.js              # Express app definition (pure, testable)
 │   │   └── server.js           # Server bootstrap and graceful shutdown listeners
 │   ├── tests/                  # Automated integration tests (node:test + supertest + MongoMemoryServer)
+│   │   ├── trips.test.js       # 15 tests: Trip publishing, discovery, capacity, and join requests
+│   │   ├── auth.test.js        # 15 tests: Authentication, sessions, profiles, and verification
+│   │   ├── health.test.js      # 4 tests: Health, security headers, 404 handling
+│   │   └── config.test.js      # 2 tests: Environment config & secret protection
 │   └── package.json            # Server dependencies and test scripts
 │
 ├── docs/                       # Architectural and security documentation
@@ -77,7 +91,7 @@ tripza/
 | **Session Middleware** | express-session | 1.18.x | Server-managed session store |
 | **Session Persistence** | connect-mongo | 5.1.x | MongoDB session persistence |
 | **Password Hashing** | bcryptjs | 2.4.x | 12 salt rounds hashing |
-| **Database ODM** | Mongoose | 8.x | Schema modeling and database access |
+| **Database ODM** | Mongoose | 8.x | Schema modeling, indexes, atomic transactions |
 | **Realtime Engine** | Socket.IO | 4.x | WebSocket support for future Trip Rooms |
 | **Test Framework** | Node Native Test Runner | - | Built-in test execution (`node:test`) |
 | **HTTP Assertion** | Supertest | 7.x | Integration testing without server port binding |
@@ -87,96 +101,105 @@ tripza/
 
 ## 4. Data Models & Separation of Concerns
 
-To protect user privacy and prevent data leakage, authentication credentials are strictly separated from public traveller profile data:
-
 ### 1. User Model (`server/src/models/User.js`)
-Stores sensitive account and security metadata only:
-- `email`: Normalized lowercase string, RFC 5322 regex validated, unique index.
-- `passwordHash`: Bcrypt hash (work factor 12), configured with `select: false` to ensure queries never return it by default.
-- `role`: Enum `['traveller', 'admin']` (default: `'traveller'`).
-- `accountStatus`: Enum `['active', 'suspended', 'deactivated']` (default: `'active'`).
-- `emailVerified`: Boolean (default: `false`).
-- `lastLoginAt`: Timestamp.
-- `timestamps`: `createdAt`, `updatedAt`.
-- `toJSON` transform: Explicitly purges `passwordHash` and `__v`.
+Sensitive security credentials and account status. Separated from public profiles.
 
 ### 2. Profile Model (`server/src/models/Profile.js`)
-Encapsulates public and community-facing traveller data:
-- `user`: 1-to-1 ObjectId reference to User, unique index.
-- `fullName`: String (2-100 characters, required).
-- `bio`: String (max 500 characters, optional).
-- `homeCity`: String (max 100 characters, optional).
-- `travelInterests`: Array of strings (e.g., `['Trekking', 'Coastal Drives', 'Camping']`).
-- `languages`: Array of strings (e.g., `['Hindi', 'English', 'Marathi']`).
-- `profilePhotoUrl`: String (URL, optional).
-- `verification`: Embedded subdocument:
-  - `status`: Enum `['unverified', 'pending_review', 'verified', 'rejected']` (default: `'unverified'`).
-  - `submittedAt`: Timestamp.
-  - `reviewedAt`: Timestamp.
-  - `reviewedBy`: ObjectId reference to reviewing Admin User.
-  - `rejectionReason`: Reason text (cleared on new submission).
-  - `reviewNotes`: Internal administrative notes.
-- `completenessPercentage`: Virtual property computing profile completeness from 20% to 100%.
-- `toPublicJSON()`: Strict projection excluding `reviewedBy`, `reviewNotes`, and `rejectionReason`.
+Public traveller bio, location, languages, travel interests, and ID verification status.
 
-> **Data Minimization Guarantee**: No national identity numbers (Aadhaar/PAN), home addresses, emergency contact phone numbers, or dates of birth are collected at this stage.
+### 3. Trip Model (`server/src/models/Trip.js`)
+Defines the journey metadata, route logistics, cost splits, capacity limits, and lifecycle status:
+- `title`: String (5-120 chars, required).
+- `description`: String (20-3000 chars, required).
+- `category`: Enum `['trekking', 'hiking', 'backpacking', 'road trip', 'weekend getaway', 'sightseeing', 'camping', 'other']`.
+- `startingCity`: String (1-100 chars, required).
+- `meetingPoint`: String (1-200 chars, required).
+- `destination`: String (1-100 chars, required).
+- `intermediateStops`: Array of strings.
+- `startDate` & `endDate`: Date objects (validated: `endDate >= startDate`).
+- `budget`: Subdocument with `amount` (non-negative Number), `currency` (default `'INR'`), `included` (array of strings), `excluded` (array of strings).
+- `itinerary`: Array of subdocuments `{ day: Number, title: String, description: String }`.
+- `maxGroupSize`: Number between 2 and 50 (inclusive of host).
+- `approvedMembersCount`: Concurrency-safe counter tracking confirmed joiners (excludes the host).
+- `joinPolicy`: Enum `['approval_required', 'direct_join']`.
+- `status`: Enum `['draft', 'published', 'cancelled', 'completed']`.
+- `organiser`: ObjectId reference to User.
+- Compound Indexes: `{ status: 1, startDate: 1 }`, `{ status: 1, destination: 1 }`, `{ status: 1, category: 1 }`, `{ status: 1, 'budget.amount': 1 }`.
+
+### 4. TripMembership Model (`server/src/models/TripMembership.js`)
+Tracks individual traveller participation, join requests, reviews, and membership history:
+- `trip`: ObjectId reference to Trip.
+- `traveller`: ObjectId reference to User.
+- `status`: Enum `['pending', 'approved', 'rejected', 'withdrawn']`.
+- `requestMessage`: String (up to 500 characters).
+- `decisionReason`: String (up to 500 characters, host feedback).
+- `requestedAt`: Timestamp.
+- `decidedAt`: Timestamp.
+- `decidedBy`: ObjectId reference to User (the organiser).
+- **Unique Compound Index**: `{ trip: 1, traveller: 1 }` enforces at the database engine level that duplicate memberships cannot be created for the same user on the same trip.
+
+### 5. Notification Model (`server/src/models/Notification.js`)
+Stores user-specific platform events (e.g., `join_request_received`, `request_approved`, `request_rejected`, `trip_cancelled`).
 
 ---
 
-## 5. Authentication, Session & CSRF Architecture
+## 5. Concurrency-Safe Group Capacity Management
+
+A critical challenge in travel applications is preventing simultaneous join requests from overfilling group capacity. TripZa implements an atomic database-level concurrency guard:
+
+1. **Host Capacity Model**: The organiser is the trip creator. Available applicant spots equals `maxGroupSize - 1`.
+2. **Atomic Increment upon Join / Approval**:
+   Instead of checking the count and later saving the document in separate steps, TripZa executes:
+   ```javascript
+   const maxJoiners = Math.max(1, trip.maxGroupSize - 1);
+   const updatedTrip = await Trip.findOneAndUpdate(
+     { _id: tripId, status: 'published', approvedMembersCount: { $lt: maxJoiners } },
+     { $inc: { approvedMembersCount: 1 } },
+     { new: true }
+   );
+   ```
+   If two requests arrive concurrently when 1 spot remains, MongoDB's atomic document locking ensures only the first operation satisfies `{ approvedMembersCount: { $lt: maxJoiners } }` and succeeds. The second receives `null`, immediately failing with a `400 TRIP_FULL` error without overbooking.
+3. **Atomic Decrement upon Member Departure**:
+   When an approved traveller withdraws or leaves, `approvedMembersCount` is decremented safely:
+   ```javascript
+   await Trip.findByIdAndUpdate(tripId, { $inc: { approvedMembersCount: -1 } });
+   ```
+
+---
+
+## 6. Trip Discovery & Multi-Parameter Search
+
+Public discovery (`GET /api/trips`) provides high-performance searching across published trips:
+- **Status Filter**: Only `status: 'published'` trips are returned to the public. `draft` trips are accessible exclusively to their creator.
+- **Search Query (`q`)**: Case-insensitive partial matching across `title`, `destination`, `startingCity`, and `description`.
+- **Category Filter**: Matches specific travel types (`trekking`, `road trip`, etc.).
+- **Budget Boundaries**: Filters by `maxBudget` (`$lte`) and `minBudget` (`$gte`).
+- **Date Filter**: Filters trips departing on or after `startDate` (`$gte`).
+- **Available Spots Only**: When `availableOnly=true`, filters trips where spots remain.
+- **Sorting Options**: `departure_asc`, `departure_desc`, `budget_asc`, `budget_desc`, `newest`.
+- **Query Sanitization**: All incoming query arguments are sanitized via `validateDiscoveryQuery` in `tripValidator.js` to strip regex metacharacters and prevent NoSQL operator injection.
+
+---
+
+## 7. Authentication, Session & CSRF Architecture
 
 ### Server-Managed Sessions
-- **Session ID Generation**: Cryptographically secure, unguessable session tokens managed by `express-session`.
-- **Session Storage**: Sessions are persisted in MongoDB via `connect-mongo` under the `sessions` collection with automatic TTL expiration (7 days).
-- **Session Fixation Defense**: Mandatory `req.session.regenerate()` is executed upon successful login and registration.
-- **Session Invalidation**: Complete `req.session.destroy()` and cookie clearance on logout.
-- **Cookie Security Settings**:
-  - `httpOnly: true`: Blocks browser JavaScript from accessing the session cookie, defeating token theft via XSS.
-  - `sameSite: 'lax'`: Protects against third-party cross-site request forgeries.
-  - `secure: config.isProduction`: Enforces HTTPS transmission in production.
-  - `path: '/'`.
-
-### Double-Submit Cookie CSRF Protection
-1. An unpredictable CSRF token (`crypto.randomBytes(32).toString('hex')`) is stored in `req.session.csrfToken`.
-2. The token is set in a client-readable cookie (`tripza_csrf`) and exposed via `GET /api/auth/csrf-token`.
-3. On all mutating requests (`POST`, `PUT`, `PATCH`, `DELETE`), the frontend API client automatically reads `tripza_csrf` and passes it in the `X-CSRF-Token` header.
-4. The server middleware (`verifyCsrf`) verifies that `req.headers['x-csrf-token'] === req.session.csrfToken` and checks the `Origin` header against `CLIENT_ORIGIN`.
-
-### Zero LocalStorage Policy
-No authentication tokens, session identifiers, passwords, or secrets are ever written to browser `localStorage` or `sessionStorage`.
+- **Session Storage**: Persisted in MongoDB via `connect-mongo` under `sessions` with TTL expiration.
+- **Session Fixation Defense**: Mandatory `req.session.regenerate()` upon login and registration.
+- **Session Invalidation**: Complete `destroy()` and cookie clearance on logout.
+- **Cookie Attributes**: `HttpOnly: true`, `SameSite: 'lax'`, `Secure: isProduction`, `Path: '/'`.
+- **Double-Submit CSRF**: Unpredictable token stored in session and cookie; validated on all mutating requests (`POST`, `PATCH`, `DELETE`).
+- **Zero LocalStorage Policy**: No tokens, sessions, or passwords ever reside in browser storage.
 
 ---
 
-## 6. Verification & Trust Workflow
+## 8. Authorization & Verification Rules
 
-TripZa treats verification as an essential trust layer for Indian group travel:
+- `requireAuth`: Verifies active session; attaches `req.user` and `req.profile`.
+- `requireVerifiedTraveller`: Only users with `profile.verification.status === 'verified'` can publish trips (`POST /api/trips` with `status: 'published'` or `POST /api/trips/:id/publish`).
+- Unverified users can create and save trips as `draft`.
+- Organisers can edit or cancel their own trips. Non-organisers attempting to modify another user's trip receive `403 FORBIDDEN`.
+- Direct-join trips allow immediate admission if capacity exists.
+- Approval-required trips create a `pending` request for organiser review.
+- Organisers can approve or reject pending requests with an optional explanatory note.
 
-```
-[ Unverified ] ──( User submits profile )──> [ Pending Review ]
-                                                      │
-                            ┌─────────────────────────┴────────────────────────┐
-                            ▼                                                  ▼
-                     [ Verified ]                                      [ Rejected ]
-             (Eligible to host trips)                        (Can update details & re-submit)
-```
-
-1. **Initial Registration**: All accounts default to `unverified`.
-2. **Submission**: User calls `POST /api/verification/submit`. Profile transitions to `pending_review`.
-3. **Manual Review (Phase 2 Baseline)**: Administrators review the submission via `POST /api/verification/review` and approve or reject with documented notes.
-4. **Elevation Protection**: Users cannot modify their own verification status or role through profile update endpoints (`PATCH /api/profiles/me` strictly whitelists non-security fields).
-
-### Provisioning the Initial Administrator
-To prevent unauthorized privilege escalation, administrator accounts cannot be created via public APIs:
-- Administrators are provisioned via a dedicated server CLI script:
-  ```bash
-  node src/scripts/provisionAdmin.js admin@tripza.in <SecurePassword> "System Administrator"
-  ```
-
----
-
-## 7. Authorization Middleware Foundation
-
-- `requireAuth`: Confirms the presence of an active server session and loads `req.user` and `req.profile`.
-- `requireAdmin`: Confirms `req.user.role === 'admin'`.
-- `requireVerifiedTraveller`: Confirms `req.profile.verification.status === 'verified'`, prepared as the gatekeeper for future trip publishing in Prompt 3.
-- `authRateLimiter`: Enforces a maximum of 10 login/registration attempts per 15 minutes per IP.

@@ -122,6 +122,27 @@ node src/scripts/provisionAdmin.js admin@tripza.in AdminPassword123! "Lead Admin
    ```
 4. Once verified, the traveller's profile displays the green **Verified Traveller** badge.
 
+### E. Testing Trip Creation & Discovery Workflows (Prompt 3)
+1. **List a Trip**:
+   - Ensure your account is verified (or save as Draft if unverified).
+   - Navigate to [http://localhost:5173/trips/create](http://localhost:5173/trips/create).
+   - Enter trip details (e.g., "Spiti Valley 9-Day Road Trip", Category: Road Trip, Starting: Chandigarh, Destination: Kaza, Budget: 14500, Max Group Size: 6).
+   - Add waypoints, inclusions, and day-by-day itinerary.
+   - Click **Publish Trip** (or **Save as Draft**).
+2. **Discover Trips**:
+   - Navigate to [http://localhost:5173/trips](http://localhost:5173/trips).
+   - Use the sidebar filters to search by destination, category, departure date, or max budget.
+   - Filter by "Available spots only" to view non-full journeys.
+3. **Join Requests**:
+   - Open any trip details page (e.g. [http://localhost:5173/trips/:id](http://localhost:5173/trips/:id)).
+   - For direct-join trips, click **Join Trip Now** to instantly confirm membership.
+   - For approval-required trips, click **Request to Join** and provide a friendly note to the host.
+4. **Host Request Management & Personal Dashboard**:
+   - Navigate to [http://localhost:5173/my-trips](http://localhost:5173/my-trips).
+   - Tab 1 ("Trips I'm Hosting"): Click **Join Requests** on any journey to review applicant notes and approve/reject them.
+   - Tab 2 ("Trips I've Joined"): View confirmed journeys and leave if plans change.
+   - Tab 3 ("My Join Requests"): Track pending applications and withdraw if needed.
+
 ---
 
 ## 5. Running Automated Tests
@@ -161,9 +182,25 @@ Expected test output:
     ok 2 - GET /api should respond with 200 and API metadata
     ok 3 - GET /api/nonexistent-route should respond with 404 and consistent error format
     ok 4 - Should set security headers via Helmet
-# tests 21
-# suites 3
-# pass 21
+# Subtest: TripZa Trip Creation, Discovery, Capacity & Join Requests Suite
+    ok 1 - 1. Verified traveller can create and publish a trip
+    ok 2 - 2. Unverified traveller cannot publish a trip (blocked with 403), but can save draft
+    ok 3 - 3. Anonymous unauthenticated user cannot create a trip
+    ok 4 - 4. Published trips appear in discovery results, drafts do not
+    ok 5 - 5. Discovery search, destination, category, and budget filters work correctly
+    ok 6 - 6. Invalid dates, negative budget, and invalid group sizes are rejected
+    ok 7 - 7. Non-organisers cannot edit or cancel another user's trip
+    ok 8 - 8. Approval-required join requests begin with pending status
+    ok 9 - 9. Direct join immediately approves applicant when capacity is available
+    ok 10 - 10. Organiser can approve and reject requests with count updates
+    ok 11 - 11. Non-organisers cannot approve or reject join requests
+    ok 12 - 12. Duplicate join requests by the same traveller are prevented
+    ok 13 - 13. Trip capacity cannot be exceeded; further requests are blocked
+    ok 14 - 14. Cancelled trips cannot accept new members
+    ok 15 - 15. Public trip endpoints do not expose private applicant records
+# tests 36
+# suites 4
+# pass 36
 # fail 0
 ```
 

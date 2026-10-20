@@ -4,7 +4,7 @@
 [![React Version](https://img.shields.io/badge/React-v19.x-blue)](https://react.dev/)
 [![Vite Version](https://img.shields.io/badge/Vite-v6.x-purple)](https://vitejs.dev/)
 [![Express Version](https://img.shields.io/badge/Express-v4.x-lightgrey)](https://expressjs.com/)
-[![Tests](https://img.shields.io/badge/Tests-Passing%20(21%2F21)-brightgreen)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-Passing%20(36%2F36)-brightgreen)](https://github.com/)
 
 **TripZa** is a trusted, community-first travel platform built for Indian travellers. It enables verified members to discover travel companions, publish road trips and treks (from Spiti and Ladakh to the Western Ghats and coastal Konkan), manage join requests, coordinate in private real-time Trip Rooms, and explore India safely together.
 
@@ -29,9 +29,20 @@
 - [x] **Profile Verification Workflow**: Explicit states (`unverified`, `pending_review`, `verified`, `rejected`). Submission endpoint and administrative review mechanism.
 - [x] **Safe Admin Provisioning**: CLI-only provisioning script (`server/src/scripts/provisionAdmin.js`); no public elevation endpoints.
 - [x] **Interactive Frontend**: Responsive `/login`, `/register`, and `/profile` pages with live verification badge, completeness meter, and reactive session state.
-- [x] **Automated Test Suite**: 21 integration tests passing across auth, sessions, CSRF, authorization, and health checks.
 
-> **Scope Note**: Trip creation, join requests, and live Trip Room chat will be introduced in subsequent prompts (Prompt 3+).
+### Prompt 3: Trip Creation, Discovery & Join Requests
+- [x] **Trip Data Model**: Rich Mongoose schema for itineraries, Indian routes, budget splits (INR), inclusions/exclusions, and group capacity limits.
+- [x] **Trip Membership Model**: Unique compound index `{ trip: 1, traveller: 1 }` preventing duplicate join requests; tracks requests, decisions, and feedback notes.
+- [x] **Concurrency-Safe Capacity Tracking**: Atomic conditional updates (`{ approvedMembersCount: { $lt: maxJoiners } }`, `$inc`) guarantee trips are never overfilled by race conditions.
+- [x] **Verified Publishing Gatekeeper**: Server-enforced verification requirement — unverified users can save drafts, but only verified travellers can publish trips to the public.
+- [x] **Discovery & Search**: Multi-parameter filters (text search `q`, destination, starting city, category, date, budget limits, available spots only) with NoSQL/ReDoS sanitization.
+- [x] **Join Policies**: Support for both `approval_required` (with host notes) and `direct_join` (instant confirmation).
+- [x] **Host Management & Dashboard**: Interactive `/my-trips` dashboard for managing hosted expeditions (reviewing applicants with approve/reject), joined trips, and personal join requests.
+- [x] **Full Frontend Pages**: Responsive `/trips`, `/trips/:id`, `/trips/create`, `/trips/:id/edit`, and `/my-trips` views with real backend integration.
+- [x] **In-App Notifications**: Model and endpoints for tracking join request updates, host decisions, and trip cancellations.
+- [x] **Comprehensive Test Suite**: **36 passing integration tests** across 4 suites covering all business rules, capacity limits, and security controls.
+
+> **Scope Note**: Private Trip Room group chat via Socket.IO will be activated in Prompt 4.
 
 ---
 
